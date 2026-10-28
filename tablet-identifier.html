@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>錠剤鑑別 — Tablet ID</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --paper:#F6F7F3;
+    --paper-dim:#EEF0EA;
+    --ink:#1E2A27;
+    --ink-soft:#48564F;
+    --line:#D3D9CE;
+    --line-strong:#B7C0B0;
+    --teal:#0C6E5F;
+    --teal-dim:#0C6E5F1a;
+    --teal-deep:#08463C;
+    --alert:#B23A22;
+    --alert-dim:#B23A2214;
+    --amber:#9C6B12;
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper-dim);
+    font-family:'Noto Sans JP', sans-serif;
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .mono{font-family:'Roboto Mono', monospace;}
+
+  /* ---- page shell around the phone ---- */
+  .stage{
+    width:100%;
+    max-width:1040px;
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:40px;
+    align-items:start;
+  }
+  @media (max-width:860px){
+    .stage{grid-template-columns:1fr; justify-items:center;}
+    .intro{display:none;}
+  }
+
+  /* ---- intro / brief copy beside the phone ---- */
+  .intro{padding-top:18px;}
+  .intro .eyebrow{
+    font-size:13px; color:var(--teal); font-weight:600; letter-spacing:.02em; margin-bottom:10px;
+  }
+  .intro h1{
+    font-size:28px; line-height:1.4; margin:0 0 14px; font-weight:700; letter-spacing:.01em;
+  }
+  .intro p{
+    font-size:14.5px; line-height:1.9; color:var(--ink-soft); margin:0 0 14px;
+  }
+  .intro .notice{
+    border:1px solid var(--alert); background:var(--alert-dim);
+    border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.8; color:#7a2c18;
+    margin-top:22px;
+  }
+  .intro .notice b{color:var(--alert);}
+  .intro .source-list{
+    margin-top:20px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12.5px; color:var(--ink-soft); line-height:1.9;
+  }
+  .intro .source-list div{margin-bottom:4px;}
+  .intro .source-list .tag{
+    display:inline-block; font-family:'Roboto Mono',monospace; font-size:10.5px;
+    color:var(--teal); border:1px solid var(--teal); border-radius:3px; padding:1px 5px; margin-right:8px;
+  }
+
+  /* ---- phone frame ---- */
+  .phone{
+    width:380px; height:800px; background:var(--ink);
+    border-radius:34px; padding:12px; box-shadow:0 20px 50px -20px rgba(20,30,25,.35);
+    flex-shrink:0; position:sticky; top:32px;
+  }
+  .screen{
+    width:100%; height:100%; background:var(--paper);
+    border-radius:24px; overflow:hidden; position:relative;
+    display:flex; flex-direction:column;
+  }
+  .statusbar{
+    height:34px; display:flex; align-items:center; justify-content:space-between;
+    padding:0 20px; font-size:11px; color:var(--ink); font-weight:600; flex-shrink:0;
+  }
+  .app-header{
+    padding:2px 20px 14px; flex-shrink:0; border-bottom:1px solid var(--line);
+  }
+  .app-header .title{font-size:19px; font-weight:700;}
+  .app-header .sub{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+
+  .view{
+    flex:1; overflow-y:auto; padding:18px 20px 12px;
+  }
+  .view::-webkit-scrollbar{width:0;}
+
+  .tabbar{
+    height:64px; flex-shrink:0; display:flex; border-top:1px solid var(--line);
+    background:var(--paper);
+  }
+  .tab{
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:4px; font-size:10.5px; color:var(--ink-soft); cursor:pointer; border:none; background:none;
+    font-family:'Noto Sans JP', sans-serif; padding:6px 0;
+  }
+  .tab.active{color:var(--teal); font-weight:700;}
+  .tab .icon{font-size:18px; line-height:1;}
+
+  /* ---- home view ---- */
+  .hero-frame{
+    border:1px solid var(--ink); border-radius:8px; padding:22px 16px; text-align:center;
+    position:relative; margin-bottom:18px; background:var(--teal-deep); color:var(--paper);
+  }
+  .hero-frame::before, .hero-frame::after{
+    content:""; position:absolute; width:16px; height:16px; border-color:var(--paper);
+    opacity:.7;
+  }
+  .hero-frame::before{top:8px; left:8px; border-top:2px solid; border-left:2px solid;}
+  .hero-frame::after{bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid;}
+  .hero-frame .glyph{font-size:34px; margin-bottom:10px;}
+  .hero-frame .htitle{font-size:16px; font-weight:700; margin-bottom:6px;}
+  .hero-frame .hsub{font-size:12px; opacity:.85; line-height:1.7;}
+
+  .quick-actions{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px;}
+  .qa-btn{
+    border:1px solid var(--ink); border-radius:6px; padding:14px 10px; text-align:left;
+    background:var(--white); cursor:pointer; font-family:inherit;
+  }
+  .qa-btn .qicon{font-size:18px; margin-bottom:8px; display:block;}
+  .qa-btn .qtitle{font-size:12.5px; font-weight:700; display:block; margin-bottom:2px;}
+  .qa-btn .qsub{font-size:10.5px; color:var(--ink-soft); display:block; line-height:1.5;}
+
+  .disclaimer-box{
+    border:1px solid var(--alert); background:var(--alert-dim); border-radius:6px;
+    padding:12px 14px; font-size:11.5px; line-height:1.75; color:#7a2c18; margin-bottom:14px;
+  }
+  .disclaimer-box b{display:block; font-size:11.5px; margin-bottom:3px; color:var(--alert);}
+
+  .section-label{
+    font-size:11px; font-weight:700; color:var(--ink-soft); margin:16px 0 8px;
+    border-bottom:1px solid var(--line); padding-bottom:6px;
+  }
+  .history-row{
+    display:flex; justify-content:space-between; align-items:center; padding:9px 0;
+    border-bottom:1px solid var(--line); font-size:12.5px;
+  }
+  .history-row .hname{font-weight:600;}
+  .history-row .htag{font-size:10px; color:var(--ink-soft);}
+
+  /* ---- id view (camera + manual) ---- */
+  .mode-switch{display:flex; border:1px solid var(--ink); border-radius:6px; overflow:hidden; margin-bottom:16px;}
+  .mode-switch button{
+    flex:1; border:none; background:var(--white); padding:9px 0; font-size:12px; font-weight:600;
+    color:var(--ink-soft); cursor:pointer; font-family:inherit;
+  }
+  .mode-switch button.on{background:var(--teal); color:var(--white);}
+
+  .viewfinder{
+    aspect-ratio:1/1; border-radius:8px; background:#0d1613; position:relative; overflow:hidden;
+    margin-bottom:14px; border:1px solid var(--ink);
+  }
+  .viewfinder video, .viewfinder canvas, .viewfinder img.captured{
+    width:100%; height:100%; object-fit:contain; position:absolute; inset:0;
+  }
+  .viewfinder .reticle{
+    position:absolute; inset:16%; border:1.5px solid #DDE7DE; opacity:.85; border-radius:4px;
+    pointer-events:none;
+  }
+  .viewfinder .reticle::before, .viewfinder .reticle::after,
+  .viewfinder .reticle > .c2, .viewfinder .reticle > .c3{
+    content:""; position:absolute; width:14px; height:14px; border-color:#DDE7DE;
+  }
+  .viewfinder .reticle::before{top:-1.5px; left:-1.5px; border-top:2px solid; border-left:2px solid;}
+  .viewfinder .reticle::after{bottom:-1.5px; right:-1.5px; border-bottom:2px solid; border-right:2px solid;}
+  .viewfinder .placeholder-msg{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#93a69b; font-size:11.5px; text-align:center; padding:0 30px; line-height:1.7;
+  }
+  .cam-controls{display:flex; gap:8px; margin-bottom:16px;}
+  .btn{
+    border:1px solid var(--ink); border-radius:6px; padding:10px 14px; background:var(--white);
+    font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; color:var(--ink);
+    flex:1; text-align:center;
+  }
+  .btn.primary{background:var(--teal); color:var(--white); border-color:var(--teal);}
+  .btn:active{transform:translateY(1px);}
+  input[type=file]{display:none;}
+
+  .field{margin-bottom:12px;}
+  .field label{font-size:11.5px; font-weight:700; color:var(--ink-soft); display:block; margin-bottom:5px;}
+  .field input, .field select{
+    width:100%; border:1px solid var(--line-strong); border-radius:5px; padding:9px 10px;
+    font-size:13.5px; font-family:'Roboto Mono', monospace; background:var(--white); color:var(--ink);
+  }
+  .field select{font-family:'Noto Sans JP', sans-serif;}
+  .field input::placeholder{color:#9AA79F; font-family:'Noto Sans JP', sans-serif;}
+
+  .result-card{
+    border:1px solid var(--ink); border-radius:7px; padding:13px 14px; margin-top:10px; background:var(--white);
+    cursor:pointer;
+  }
+  .result-card .rc-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;}
+  .result-card .rname{font-size:14px; font-weight:700;}
+  .result-card .rscore{font-size:10.5px; font-family:'Roboto Mono',monospace; color:var(--teal); font-weight:700;}
+  .result-card .rgeneric{font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;}
+  .result-card .rmeta{display:flex; gap:10px; font-size:10.5px; color:var(--ink-soft);}
+  .result-card .rmeta span{font-family:'Roboto Mono', monospace;}
+
+  .empty-note{font-size:12px; color:var(--ink-soft); text-align:center; padding:20px 10px; line-height:1.8;}
+
+  /* ---- multi-pill view ---- */
+  .canvas-wrap{position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--ink); margin-bottom:12px;}
+  .canvas-wrap canvas{display:block; width:100%; cursor:crosshair;}
+  .marker{position:absolute; width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:50%;
+    border:2px solid var(--teal); pointer-events:none;}
+  .marker.bad{border-color:var(--alert); box-shadow:0 0 0 3px rgba(178,58,34,.18);}
+  .marker .idx{position:absolute; top:-18px; left:50%; transform:translateX(-50%);
+    font-size:9.5px; font-family:'Roboto Mono',monospace; font-weight:700; color:var(--ink);
+    background:var(--paper); padding:0 3px; border-radius:2px;}
+
+  .analysis-banner{
+    border-radius:7px; padding:12px 14px; font-size:12px; line-height:1.7; margin-bottom:12px;
+  }
+  .analysis-banner.ok{background:var(--teal-dim); border:1px solid var(--teal); color:var(--teal-deep);}
+  .analysis-banner.warn{background:var(--alert-dim); border:1px solid var(--alert); color:#7a2c18;}
+  .analysis-banner b{display:block; font-size:12.5px; margin-bottom:3px;}
+
+  .pill-list{display:flex; flex-direction:column; gap:6px; margin-bottom:10px;}
+  .pill-row{
+    display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:6px;
+    padding:8px 10px; font-size:11.5px;
+  }
+  .pill-row.bad{border-color:var(--alert); background:var(--alert-dim);}
+  .swatch{width:16px; height:16px; border-radius:50%; border:1px solid var(--ink); flex-shrink:0;}
+  .pill-row .lbl{font-family:'Roboto Mono', monospace; font-weight:700; width:20px;}
+  .pill-row .stat{margin-left:auto; font-family:'Roboto Mono', monospace; font-size:10px; color:var(--ink-soft);}
+  .pill-row.bad .stat{color:var(--alert); font-weight:700;}
+
+  /* ---- modal (drug detail) ---- */
+  .modal-backdrop{
+    position:absolute; inset:0; background:rgba(20,30,25,.5); display:none;
+    align-items:flex-end; z-index:20; border-radius:24px; overflow:hidden;
+  }
+  .modal-backdrop.show{display:flex;}
+  .modal-sheet{
+    width:100%; max-height:82%; background:var(--paper); border-radius:16px 16px 0 0;
+    padding:20px 20px 18px; overflow-y:auto; border-top:1px solid var(--ink);
+  }
+  .modal-sheet .mtitle{font-size:17px; font-weight:700; margin-bottom:2px;}
+  .modal-sheet .mgeneric{font-size:12.5px; color:var(--ink-soft); margin-bottom:14px;}
+  .modal-sheet .mrow{display:flex; padding:8px 0; border-bottom:1px solid var(--line); font-size:12px;}
+  .modal-sheet .mrow .mk{width:88px; flex-shrink:0; color:var(--ink-soft); font-weight:600;}
+  .modal-sheet .mrow .mv{font-family:'Roboto Mono', monospace;}
+  .modal-sheet .mnote{
+    margin-top:14px; font-size:11.5px; line-height:1.8; color:var(--ink-soft);
+    background:var(--white); border:1px solid var(--line); border-radius:6px; padding:10px 12px;
+  }
+  .modal-sheet .mlink{
+    display:block; text-align:center; margin-top:14px; border:1px solid var(--teal); color:var(--teal);
+    border-radius:6px; padding:10px; font-size:12.5px; font-weight:700; text-decoration:none;
+  }
+  .modal-close{
+    position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; color:var(--ink-soft);
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+<div class="stage">
+
+  <div class="intro">
+    <div class="eyebrow">PROTOTYPE — 医薬品鑑別アプリ</div>
+    <h1>錠剤の刻印から<br>薬を鑑別する</h1>
+    <p>カメラで撮影した錠剤の刻印・形状・色から医薬品を検索する UI プロトタイプです。複数の錠剤が写っている場合に、他と異なるものが混ざっていないかをチェックする機能も含みます。</p>
+    <p>右のスマートフォン画面を操作して、鑑別と混入チェックの流れを試すことができます。</p>
+    <div class="notice">
+      <b>これはプロトタイプです。</b>
+      刻印文字を画像から自動で読み取るAI認識と、PMDA(医薬品医療機器総合機構)の添付文書情報・各製薬企業の公式データとの照合は、本番運用では専用のサーバー側システムとAPI連携によって実現します。このファイル単体はオフラインのデモのため、内蔵しているのは少数のサンプルデータのみです。<b>実際の服薬判断・鑑別には使用せず、薬剤師または医師にご確認ください。</b>
+    </div>
+    <div class="source-list">
+      <div><span class="tag">本番想定</span>PMDA 添付文書検索システム(公式API/データ連携)</div>
+      <div><span class="tag">本番想定</span>各製薬企業の刻印コード公開データ</div>
+      <div><span class="tag">本番想定</span>錠剤画像認識モデル(刻印OCR・形状/色分類)</div>
+      <div><span class="tag">本デモ</span>サンプル医薬品データ 12 件 + 色ベースの混入検知ロジック</div>
+    </div>
+
+    <div class="notice" style="margin-top:20px;">
+      <b>官製・無料の刻印検索APIは存在しません。</b>
+      PMDAは刻印コードだけで検索できる公開APIを提供していません。添付文書データを扱うJAPICの「iyakuSearch」には識別コード専用の検索項目がありますが、有料の「Plus」会員限定機能で無料枠では使えません(全文検索であれば無料でも刻印の文字列がヒットすることがあります)。つまり、無料で自動的に公式データへ接続する方法は現状ありません。これは正直にお伝えしておきたい技術的な限界です。
+    </div>
+
+    <div class="notice" style="margin-top:14px;">
+      <b>そこで「マイデータベース」機能を追加しました。</b>
+      PMDAまたはJAPICで一度確認した薬品を、アプリ内のフォームからご自身で登録できます。登録した内容はその場で検索対象になり、次回以降はアプリ内だけで刻印から探せます。この端末のブラウザに保存されるので、閉じても内容は残ります(内容の編集・削除も可能です)。別の端末に移したいときは、CSVの書き出し・読み込みも使えます。
+    </div>
+
+    <div class="notice" style="margin-top:14px;">
+      <b>カメラが起動しない理由。</b>
+      スマホのブラウザは、HTTPS(暗号化された接続)で提供されているページでないとカメラへのアクセスを許可しません。ダウンロードしたHTMLファイルをそのまま開く(file://で開く)と、この安全対策によりカメラが使えません。個人利用でも回避するには、ファイルをHTTPSで公開する必要があります。下記いずれかが簡単です。
+    </div>
+    <div class="source-list" style="margin-top:10px; border-top:none; padding-top:0;">
+      <div><span class="tag">方法1</span>Netlify Drop (netlify.com/drop) にこのHTMLファイルをドラッグ&ドロップするだけで、その場でHTTPSのURLが発行されます。アカウント登録も不要です。</div>
+      <div style="margin-top:8px;"><span class="tag">方法2</span>GitHub Pages: 無料のGitHubアカウントでリポジトリを作り、このファイルを index.html として置き、Pages機能を有効にすると、常設のHTTPS URLが得られます。</div>
+    </div>
+    <p style="margin-top:12px; font-size:13px;">発行されたURLをスマホのブラウザで開けば、このプロトタイプのままカメラ機能が動作するようになります。</p>
+  </div>
+
+  <div class="phone">
+    <div class="screen" id="screen">
+
+      <div class="statusbar">
+        <span>9:41</span>
+        <span>錠剤鑑別</span>
+        <span>●●●</span>
+      </div>
+
+      <!-- HOME VIEW -->
+      <div class="view" id="view-home">
+        <div class="app-header" style="margin:-18px -20px 14px; padding:2px 20px 14px;">
+          <div class="title">ホーム</div>
+          <div class="sub">錠剤の鑑別・混入チェック</div>
+        </div>
+
+        <div class="hero-frame">
+          <div class="glyph">⌖</div>
+          <div class="htitle">錠剤を撮影して鑑別</div>
+          <div class="hsub">刻印・形状・色から候補を検索します</div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="qa-btn" onclick="goView('id')">
+            <span class="qicon">◎</span>
+            <span class="qtitle">1錠を鑑別</span>
+            <span class="qsub">刻印コードから検索</span>
+          </button>
+          <button class="qa-btn" onclick="goView('multi')">
+            <span class="qicon">▦</span>
+            <span class="qtitle">複数錠剤チェック</span>
+            <span class="qsub">混入している錠剤を検知</span>
+          </button>
+          <button class="qa-btn" onclick="goView('rx')" style="grid-column:1 / -1;">
+            <span class="qicon">📋</span>
+            <span class="qtitle">処方せんを仕分け</span>
+            <span class="qsub">一包化するもの・しないものをリスト化</span>
+          </button>
+        </div>
+
+        <div class="disclaimer-box">
+          <b>ご利用にあたって</b>
+          本アプリは鑑別の補助を目的としたプロトタイプです。最終的な判断は必ず薬剤師・医師、または PMDA 公式サイトでご確認ください。
+        </div>
+
+        <div class="section-label">最近の履歴(サンプル)</div>
+        <div class="history-row"><span class="hname">ロキソプロフェンNa錠60mg「サンプル」</span><span class="htag">2件前</span></div>
+        <div class="history-row"><span class="hname">アムロジピンOD錠5mg「サンプル」</span><span class="htag">5件前</span></div>
+      </div>
+
+      <!-- SINGLE ID VIEW -->
+      <div class="view" id="view-id" style="display:none;">
+        <div class="app-header" style="margin:-18px -20px 14px; padding:2px 20px 14px;">
+          <div class="title">1錠を鑑別</div>
+          <div class="sub">刻印・形状・色を入力してください</div>
+        </div>
+
+        <div class="mode-switch">
+          <button id="btn-mode-cam" class="on" onclick="setIdMode('cam')">カメラで撮影</button>
+          <button id="btn-mode-manual" onclick="setIdMode('manual')">手入力のみ</button>
+        </div>
+
+        <div id="id-cam-block">
+          <div class="viewfinder" id="viewfinder">
+            <div class="placeholder-msg" id="cam-placeholder">錠剤を枠内に収めて撮影してください<br>(このデモではブラウザのカメラ権限が必要です)</div>
+            <video id="cam-video" autoplay playsinline style="display:none;"></video>
+            <canvas id="cam-canvas" style="display:none;"></canvas>
+            <img id="cam-captured" class="captured" style="display:none;">
+            <div class="reticle" id="cam-reticle" style="display:none;"><div class="c2"></div><div class="c3"></div></div>
+          </div>
+          <div class="cam-controls">
+            <button class="btn" onclick="startCamera()">カメラを起動</button>
+            <button class="btn" id="btn-capture" onclick="captureFrame()" disabled>撮影する</button>
+          </div>
+          <div class="cam-controls" style="margin-top:-6px;">
+            <label class="btn" style="margin:0;">
+              画像を選択
+              <input type="file" accept="image/*" onchange="handleFileUpload(event)">
+            </label>
+          </div>
+          <button class="btn primary" id="btn-ocr" style="width:100%; margin-bottom:10px; display:none;" onclick="runImprintOcr()">この写真から刻印を自動認識</button>
+          <div id="ocr-status" style="font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; display:none;"></div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px; color:var(--ink-soft); margin-bottom:5px; cursor:pointer;" onclick="toggleOcrSettings()">⚙ 認識精度の設定(任意)</div>
+            <div id="ocr-settings" style="display:none; border:1px solid var(--line); border-radius:6px; padding:10px 12px;">
+              <div style="font-size:11px; line-height:1.7; color:var(--ink-soft); margin-bottom:8px;">
+                無料のOCR.space APIキーを登録すると、Tesseract.jsより高精度なクラウドOCRを試せます(未入力の場合は自動でTesseract.jsを使用)。キーは <a href="https://ocr.space/ocrapi" target="_blank" rel="noopener" style="color:var(--teal);">ocr.space/ocrapi</a> で無料登録すると取得できます。無料枠には利用回数の上限があります。
+              </div>
+              <input type="text" id="ocr-space-key" placeholder="OCR.space APIキー(任意)" oninput="saveOcrKey()" style="width:100%; border:1px solid var(--line-strong); border-radius:5px; padding:8px 9px; font-size:12.5px; font-family:'Roboto Mono', monospace;">
+            </div>
+          </div>
+          <div class="disclaimer-box" style="margin-bottom:14px;">
+            <b>カメラが起動しない場合</b>
+            スマホのブラウザは、HTTPS(安全な接続)で開かれていないページではカメラを使わせません。「画像を選択」で写真を選ぶ方法は、この制限に関係なく使えます。
+          </div>
+        </div>
+
+        <div class="field">
+          <label>刻印コード(見えている文字・数字)</label>
+          <input type="text" id="input-imprint" placeholder="例: EE 60" oninput="runSearch()">
+        </div>
+        <button class="btn" style="width:100%; margin-bottom:8px;" onclick="openPmdaSearch()">PMDA公式サイトでこの刻印を検索</button>
+        <button class="btn" style="width:100%; margin-bottom:12px;" onclick="openJapicSearch()">JAPIC iyakuSearchで全文検索</button>
+        <div class="field">
+          <label>形状</label>
+          <select id="input-shape" onchange="runSearch()">
+            <option value="">指定なし</option>
+            <option value="円形">円形</option>
+            <option value="楕円形">楕円形</option>
+            <option value="三角形">三角形</option>
+            <option value="OD錠(丸型)">OD錠(丸型)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>色</label>
+          <select id="input-color" onchange="runSearch()">
+            <option value="">指定なし</option>
+            <option value="白">白</option>
+            <option value="淡黄色">淡黄色</option>
+            <option value="ピンク">ピンク</option>
+            <option value="淡橙色">淡橙色</option>
+            <option value="淡赤色">淡赤色</option>
+          </select>
+        </div>
+
+        <div class="section-label">検索結果(サンプル + マイデータベース)</div>
+        <div id="id-results"></div>
+
+        <div class="section-label">マイデータベースに登録する</div>
+        <div style="font-size:11.5px; color:var(--ink-soft); line-height:1.7; margin-bottom:10px;">
+          PMDAまたはJAPICで確認した内容を、ご自身でここに登録できます。この端末に保存されるので、次回このページを開いたときも残っています。内容の修正・削除は下の一覧からいつでもできます。
+        </div>
+        <div class="field"><label>薬品名</label><input type="text" id="ud-name" placeholder="例: ○○錠10mg「△△」"></div>
+        <div class="field"><label>刻印コード</label><input type="text" id="ud-imprint" placeholder="例: AB123"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="field"><label>形状</label><input type="text" id="ud-shape" placeholder="例: 円形"></div>
+          <div class="field"><label>色</label><input type="text" id="ud-color" placeholder="例: 白"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="field"><label>用量</label><input type="text" id="ud-dosage" placeholder="例: 10mg"></div>
+          <div class="field"><label>製造販売元</label><input type="text" id="ud-maker" placeholder="例: ○○製薬"></div>
+        </div>
+        <div class="field">
+          <label>参考写真(任意)</label>
+          <label class="btn" style="width:100%; margin:0; display:block;">
+            写真を選ぶ
+            <input type="file" accept="image/*" id="ud-photo-input" onchange="handleUdPhoto(event)">
+          </label>
+          <div id="ud-photo-preview" style="margin-top:8px; display:none; align-items:center;">
+            <img id="ud-photo-preview-img" style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--ink); vertical-align:middle;">
+            <span style="font-size:11px; color:var(--ink-soft); cursor:pointer; margin-left:8px;" onclick="clearUdPhoto()">写真を削除</span>
+          </div>
+        </div>
+        <div class="field">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="ud-pack-flag" style="width:auto;">
+            一包化できる(薬剤師に確認済み)
+          </label>
+          <div style="font-size:10.5px; color:var(--ink-soft); margin-top:4px; line-height:1.6;">
+            チェックしない場合は「バラ」として扱われます。一包化の可否はアプリでは判定しません。必ず薬剤師にご確認のうえチェックしてください。
+          </div>
+        </div>
+        <button class="btn primary" id="ud-submit-btn" style="width:100%; margin-bottom:8px;" onclick="addUserDrug()">マイデータベースに追加</button>
+        <button class="btn" id="ud-cancel-btn" style="width:100%; margin-bottom:10px; display:none;" onclick="cancelEditUserDrug()">編集をキャンセル</button>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button class="btn" onclick="exportUserDb()">CSVで保存</button>
+          <label class="btn" style="margin:0;">CSVを読み込む<input type="file" accept=".csv" onchange="importUserDb(event)"></label>
+        </div>
+        <div id="ud-list"></div>
+      </div>
+
+      <!-- MULTI-PILL VIEW -->
+      <div class="view" id="view-multi" style="display:none;">
+        <div class="app-header" style="margin:-18px -20px 14px; padding:2px 20px 14px;">
+          <div class="title">複数錠剤チェック</div>
+          <div class="sub">写真から自動で異なる錠剤を検出します</div>
+        </div>
+
+        <div class="mode-switch">
+          <button id="btn-multi-mode-cam" class="on" onclick="setMultiMode('cam')">カメラで撮影</button>
+          <button id="btn-multi-mode-file" onclick="setMultiMode('file')">画像を選択</button>
+        </div>
+
+        <div id="multi-cam-block">
+          <div class="viewfinder" id="multi-viewfinder">
+            <div class="placeholder-msg" id="multi-cam-placeholder">錠剤を並べて撮影してください<br>(できれば無地の背景の上に)</div>
+            <video id="multi-cam-video" autoplay playsinline style="display:none;"></video>
+          </div>
+          <canvas id="multi-cam-canvas" style="display:none;"></canvas>
+          <div class="cam-controls">
+            <button class="btn" onclick="startMultiCamera()">カメラを起動</button>
+            <button class="btn" id="btn-multi-capture" onclick="captureMultiFrame()" disabled>撮影する</button>
+          </div>
+          <div class="disclaimer-box" style="margin-bottom:14px;">
+            <b>カメラが起動しない場合</b>
+            スマホのブラウザは、HTTPS(安全な接続)で開かれていないページではカメラを使わせません。「画像を選択」で写真を選ぶ方法は、この制限に関係なく使えます。
+          </div>
+        </div>
+
+        <div id="multi-file-block" style="display:none;">
+          <label class="btn" style="display:block; margin-bottom:10px;">
+            写真を選択して読み込む
+            <input type="file" accept="image/*" onchange="handleMultiUpload(event)">
+          </label>
+        </div>
+
+        <div class="canvas-wrap" id="multi-canvas-wrap" style="display:none;">
+          <canvas id="multi-canvas"></canvas>
+        </div>
+        <div id="multi-placeholder" class="empty-note">
+          複数の錠剤が写った写真(できれば無地の背景の上に並べたもの)をカメラで撮影するか選択すると、自動で1つずつを検出し、色が違うものだけをマークします。
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <button class="btn" onclick="resetMultiMarkers()">マークを全て消す</button>
+          <button class="btn" onclick="runAutoDetect()">自動検出をやり直す</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button class="btn primary" style="width:100%;" onclick="analyzeMulti()">今のマークで解析し直す</button>
+        </div>
+        <div style="font-size:11px; color:var(--ink-soft); margin:-8px 0 14px; line-height:1.7;">
+          自動検出で見つからない錠剤は、写真を直接タップすると手動で追加できます。既にマークがある場所をタップすると、そのマークを取り消せます。
+        </div>
+
+        <div id="multi-analysis"></div>
+        <div class="pill-list" id="multi-pill-list"></div>
+
+        <div class="disclaimer-box" style="margin-top:4px;">
+          <b>このデモの仕組み</b>
+          背景の色を自動で推定し、そこから色が離れている領域を錠剤として検出したうえで、検出した錠剤同士の色を比較し、少数派の色のものを「混入の可能性」として警告する簡易ロジックです。背景が無地でない場合や、錠剤同士が重なっている場合はうまく検出できないことがあります。実運用では、形状・刻印・サイズも含めた画像認識モデルでの判定が必要です。
+        </div>
+      </div>
+
+      <div class="view" id="view-rx" style="display:none;">
+        <div class="app-header" style="margin:-18px -20px 14px; padding:2px 20px 14px;">
+          <div class="title">処方せん</div>
+          <div class="sub">一包化するもの・しないものを仕分け</div>
+        </div>
+
+        <div class="mode-switch">
+          <button id="btn-rx-mode-cam" class="on" onclick="setRxMode('cam')">カメラで撮影</button>
+          <button id="btn-rx-mode-file" onclick="setRxMode('file')">画像を選択</button>
+        </div>
+
+        <div id="rx-cam-block">
+          <div class="viewfinder" id="rx-viewfinder" style="aspect-ratio:3/4;">
+            <div class="placeholder-msg" id="rx-cam-placeholder">処方せん全体が入るように撮影してください</div>
+            <video id="rx-cam-video" autoplay playsinline style="display:none;"></video>
+          </div>
+          <canvas id="rx-cam-canvas" style="display:none;"></canvas>
+          <div class="cam-controls">
+            <button class="btn" onclick="startRxCamera()">カメラを起動</button>
+            <button class="btn" id="btn-rx-capture" onclick="captureRxFrame()" disabled>撮影する</button>
+          </div>
+          <div class="disclaimer-box" style="margin-bottom:14px;">
+            <b>カメラが起動しない場合</b>
+            スマホのブラウザは、HTTPS(安全な接続)で開かれていないページではカメラを使わせません。「画像を選択」で写真を選ぶ方法は、この制限に関係なく使えます。
+          </div>
+        </div>
+
+        <div id="rx-file-block" style="display:none;">
+          <label class="btn" style="display:block; margin-bottom:10px;">
+            写真を選択して読み込む
+            <input type="file" accept="image/*" onchange="handleRxUpload(event)">
+          </label>
+        </div>
+
+        <div id="rx-image-preview" style="display:none; margin-bottom:12px;">
+          <img id="rx-image-preview-img" style="width:100%; border-radius:8px; border:1px solid var(--ink);">
+        </div>
+
+        <button class="btn primary" id="btn-rx-ocr" style="width:100%; margin-bottom:10px; display:none;" onclick="runRxOcr()">この写真から文字を読み取る</button>
+        <div id="rx-ocr-status" style="font-size:11.5px; color:var(--ink-soft); margin-bottom:10px; display:none;"></div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:var(--ink-soft); margin-bottom:5px; cursor:pointer;" onclick="toggleRxOcrSettings()">⚙ 認識精度の設定(任意)</div>
+          <div id="rx-ocr-settings" style="display:none; border:1px solid var(--line); border-radius:6px; padding:10px 12px;">
+            <div style="font-size:11px; line-height:1.7; color:var(--ink-soft); margin-bottom:8px;">
+              無料のOCR.space APIキーを登録すると、Tesseract.jsより高精度なクラウドOCRを試せます(未入力の場合は自動でTesseract.jsを使用)。「1錠鑑別」タブと共通の設定です。キーは <a href="https://ocr.space/ocrapi" target="_blank" rel="noopener" style="color:var(--teal);">ocr.space/ocrapi</a> で無料登録すると取得できます。
+            </div>
+            <input type="text" id="ocr-space-key-rx" placeholder="OCR.space APIキー(任意)" oninput="saveOcrKeyRx()" style="width:100%; border:1px solid var(--line-strong); border-radius:5px; padding:8px 9px; font-size:12.5px; font-family:'Roboto Mono', monospace;">
+            <div style="font-size:11px; line-height:1.7; color:var(--ink-soft); margin:12px 0 6px;">
+              <b>Gemini(最も高精度・おすすめ)</b>: <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--teal);">Google AI Studio</a>で無料のAPIキーを発行して入力すると、Geminiが最優先で使われます。撮影した画像はGoogleに送信されます。無料枠では入力内容がモデル改善に使われる場合があるため、氏名・保険者番号などは写さないか隠して撮影してください。
+            </div>
+            <input type="password" id="gemini-key-rx" placeholder="Gemini APIキー(任意)" oninput="saveGeminiSettings()" style="width:100%; border:1px solid var(--line-strong); border-radius:5px; padding:8px 9px; font-size:12.5px; font-family:'Roboto Mono', monospace;">
+            <input type="text" id="gemini-model-rx" placeholder="モデル名(既定: gemini-3.5-flash-lite)" oninput="saveGeminiSettings()" style="width:100%; margin-top:6px; border:1px solid var(--line-strong); border-radius:5px; padding:8px 9px; font-size:12.5px; font-family:'Roboto Mono', monospace;">
+          </div>
+        </div>
+
+        <div class="section-label">読み取ったテキスト(誤りがあれば修正してください)</div>
+        <textarea id="rx-raw-text" rows="4" style="width:100%; border:1px solid var(--line-strong); border-radius:6px; padding:8px 10px; font-size:12px; font-family:'Roboto Mono',monospace; margin-bottom:10px; box-sizing:border-box;" placeholder="例: アムロジピン5mg 1錠1×朝食後、ミヤBM錠 3錠3×毎食後、インヴェガ6mg 1錠1×朝食後"></textarea>
+        <button class="btn primary" style="width:100%; margin-bottom:14px;" onclick="parseRxText()">この文章を解析する</button>
+
+        <div class="section-label">薬品リスト(内容を確認・修正してください)</div>
+        <div id="rx-item-list"></div>
+        <button class="btn" style="width:100%; margin-bottom:14px;" onclick="addRxItemRow()">行を追加</button>
+
+        <button class="btn primary" style="width:100%; margin-bottom:14px;" onclick="buildRxGroups()">仕分けリストを作成</button>
+
+        <div id="rx-groups"></div>
+
+        <div class="disclaimer-box" style="margin-top:4px;">
+          <b>このデモの仕組み</b>
+          処方せんの文字をOCR(文字認識)で読み取り、簡単なルールで「薬品名・量・回数・タイミング」に分けています。手書きや独特の略語が多い処方せんでは正しく読み取れないことが多いため、必ず読み取り結果とリストの内容をご自身で確認・修正してください。<b>「一包化できるかどうか」はアプリが判断しているのではなく、マイデータベースにご自身が登録した内容をそのまま使っています。</b>マイデータベースに登録がない薬は「要確認」として表示されるので、必ず薬剤師にご確認のうえ判断してください。
+        </div>
+      </div>
+
+      <div class="tabbar">
+        <button class="tab active" id="tab-home" onclick="goView('home')"><span class="icon">⌂</span>ホーム</button>
+        <button class="tab" id="tab-id" onclick="goView('id')"><span class="icon">◎</span>1錠鑑別</button>
+        <button class="tab" id="tab-multi" onclick="goView('multi')"><span class="icon">▦</span>複数チェック</button>
+        <button class="tab" id="tab-rx" onclick="goView('rx')"><span class="icon">📋</span>処方せん</button>
+      </div>
+
+      <div class="modal-backdrop" id="modal-backdrop" onclick="closeModalBg(event)">
+        <div class="modal-sheet" id="modal-sheet" onclick="event.stopPropagation()">
+          <button class="modal-close" onclick="closeModal()">×</button>
+          <div id="modal-content"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============ サンプル医薬品データベース(デモ用・架空値を含む) ============
+   実運用では PMDA 添付文書情報 / 各製薬企業の公開データに置き換える。 */
+const DRUG_DB = [
+  {name:"ロキソプロフェンNa錠60mg「サンプル」", generic:"ロキソプロフェンナトリウム水和物", maker:"サンプル製薬", imprint:"EE 60", shape:"円形", color:"白", dosage:"60mg", category:"非ステロイド性消炎鎮痛剤"},
+  {name:"アムロジピンOD錠5mg「サンプル」", generic:"アムロジピンベシル酸塩", maker:"サンプル製薬", imprint:"AML 5", shape:"OD錠(丸型)", color:"白", dosage:"5mg", category:"Ca拮抗剤(降圧剤)"},
+  {name:"メトホルミン塩酸塩錠250mg「サンプル」", generic:"メトホルミン塩酸塩", maker:"サンプル薬品", imprint:"MET 250", shape:"楕円形", color:"白", dosage:"250mg", category:"ビグアナイド系血糖降下剤"},
+  {name:"ランソプラゾールOD錠15mg「サンプル」", generic:"ランソプラゾール", maker:"サンプル製薬", imprint:"LPZ 15", shape:"OD錠(丸型)", color:"淡黄色", dosage:"15mg", category:"プロトンポンプ阻害剤"},
+  {name:"プレドニゾロン錠5mg「サンプル」", generic:"プレドニゾロン", maker:"サンプル薬品", imprint:"PSL 5", shape:"円形", color:"白", dosage:"5mg", category:"合成副腎皮質ホルモン剤"},
+  {name:"ビソプロロールフマル酸塩錠2.5mg「サンプル」", generic:"ビソプロロールフマル酸塩", maker:"サンプル製薬", imprint:"BISO 2.5", shape:"円形", color:"淡黄色", dosage:"2.5mg", category:"β1遮断剤"},
+  {name:"エチゾラム錠0.5mg「サンプル」", generic:"エチゾラム", maker:"サンプル薬品", imprint:"EZ 0.5", shape:"円形", color:"白", dosage:"0.5mg", category:"抗不安剤"},
+  {name:"アトルバスタチン錠10mg「サンプル」", generic:"アトルバスタチンカルシウム水和物", maker:"サンプル製薬", imprint:"ATV 10", shape:"楕円形", color:"白", dosage:"10mg", category:"HMG-CoA還元酵素阻害剤"},
+  {name:"クラリスロマイシン錠200mg「サンプル」", generic:"クラリスロマイシン", maker:"サンプル薬品", imprint:"CAM 200", shape:"楕円形", color:"淡黄色", dosage:"200mg", category:"マクロライド系抗生物質"},
+  {name:"センノシド錠12mg「サンプル」", generic:"センノシド", maker:"サンプル製薬", imprint:"SEN 12", shape:"円形", color:"淡赤色", dosage:"12mg", category:"緩下剤"},
+  {name:"ファモチジン錠20mg「サンプル」", generic:"ファモチジン", maker:"サンプル薬品", imprint:"FAM 20", shape:"円形", color:"白", dosage:"20mg", category:"H2受容体拮抗剤"},
+  {name:"デキサメタゾン錠0.5mg「サンプル」", generic:"デキサメタゾン", maker:"サンプル製薬", imprint:"DX 0.5", shape:"円形", color:"淡橙色", dosage:"0.5mg", category:"合成副腎皮質ホルモン剤"}
+];
+
+/* ============ 画面遷移 ============ */
+function goView(name){
+  ['home','id','multi','rx'].forEach(v=>{
+    document.getElementById('view-'+v).style.display = (v===name)?'block':'none';
+    document.getElementById('tab-'+v).classList.toggle('active', v===name);
+  });
+}
+
+/* ============ 1錠鑑別:カメラ ============ */
+let camStream = null;
+
+/* プレビュー画面(正方形などに切り抜いて表示している枠)の縦横比を、
+   実際のカメラ映像の縦横比に合わせる。これをしないと、画面に見えている範囲と
+   実際に撮影・保存される範囲がずれてしまう(見た目と保存結果が一致しなくなる)。 */
+function syncViewfinderAspect(videoEl, viewfinderEl){
+  videoEl.addEventListener('loadedmetadata', function onMeta(){
+    if(videoEl.videoWidth && videoEl.videoHeight){
+      viewfinderEl.style.aspectRatio = videoEl.videoWidth + ' / ' + videoEl.videoHeight;
+    }
+    videoEl.removeEventListener('loadedmetadata', onMeta);
+  });
+}
+function setIdMode(mode){
+  document.getElementById('btn-mode-cam').classList.toggle('on', mode==='cam');
+  document.getElementById('btn-mode-manual').classList.toggle('on', mode==='manual');
+  document.getElementById('id-cam-block').style.display = (mode==='cam') ? 'block' : 'none';
+}
+async function startCamera(){
+  const placeholder = document.getElementById('cam-placeholder');
+  if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia){
+    placeholder.innerHTML = 'このページは安全な接続(HTTPS)で開かれていないため、ブラウザがカメラ機能自体を提供していません。<br>「画像を選択」をお使いいただくか、下部の案内に沿ってHTTPSで公開してから再度お試しください。';
+    placeholder.style.display = 'flex';
+    return;
+  }
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video = document.getElementById('cam-video');
+    video.srcObject = camStream;
+    video.style.display = 'block';
+    syncViewfinderAspect(video, document.getElementById('viewfinder'));
+    placeholder.style.display = 'none';
+    document.getElementById('cam-reticle').style.display = 'block';
+    document.getElementById('cam-captured').style.display = 'none';
+    document.getElementById('btn-capture').disabled = false;
+  }catch(err){
+    if(err.name === 'NotAllowedError'){
+      placeholder.innerHTML = 'カメラの利用が許可されていません。ブラウザまたはOSの設定でこのサイトのカメラ権限を許可してください。';
+    }else if(err.name === 'NotFoundError'){
+      placeholder.innerHTML = '利用できるカメラが見つかりませんでした。「画像を選択」をご利用ください。';
+    }else{
+      placeholder.innerHTML = 'カメラを起動できませんでした(' + err.name + ')。多くの場合、ページがHTTPSで公開されていないことが原因です。下部の案内をご確認いただくか、「画像を選択」をご利用ください。';
+    }
+    placeholder.style.display = 'flex';
+  }
+}
+function captureFrame(){
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/png');
+  showCapturedImage(dataUrl);
+  if(camStream){ camStream.getTracks().forEach(t=>t.stop()); }
+}
+function handleFileUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => showCapturedImage(e.target.result);
+  reader.readAsDataURL(file);
+}
+function showCapturedImage(dataUrl){
+  const img = document.getElementById('cam-captured');
+  img.onload = () => {
+    // OCR用に、表示用imgとは別に常にcam-canvasへ元画像を保持しておく
+    const canvas = document.getElementById('cam-canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    document.getElementById('btn-ocr').style.display = 'block';
+  };
+  img.src = dataUrl; img.style.display = 'block';
+  document.getElementById('cam-video').style.display = 'none';
+  document.getElementById('cam-reticle').style.display = 'none';
+  document.getElementById('cam-placeholder').style.display = 'none';
+  document.getElementById('input-imprint').placeholder = '写真を見て、刻印文字を入力してください';
+  document.getElementById('ocr-status').style.display = 'none';
+}
+
+/* ============ 刻印の自動文字認識(実験的) ============
+   キー未設定: Tesseract.js(ブラウザ内完結・無料・精度は限定的)
+   キー設定時: OCR.spaceのクラウドAPI(要ユーザー自身の無料APIキー・精度は高めだがネット接続必須)
+   いずれの場合も、極小・立体的な刻印文字はOCR自体が苦手とする対象のため、
+   認識結果は必ず目視で確認・修正することを前提にしている。 */
+const OCR_KEY_STORAGE = 'tabletOcrSpaceKey_v1';
+function loadOcrKey(){
+  try{ return localStorage.getItem(OCR_KEY_STORAGE) || ''; }catch(err){ return ''; }
+}
+function saveOcrKey(){
+  const v = document.getElementById('ocr-space-key').value.trim();
+  try{ localStorage.setItem(OCR_KEY_STORAGE, v); }catch(err){}
+  const other = document.getElementById('ocr-space-key-rx');
+  if(other) other.value = v;
+}
+function saveOcrKeyRx(){
+  const v = document.getElementById('ocr-space-key-rx').value.trim();
+  try{ localStorage.setItem(OCR_KEY_STORAGE, v); }catch(err){}
+  const other = document.getElementById('ocr-space-key');
+  if(other) other.value = v;
+}
+function toggleOcrSettings(){
+  const el = document.getElementById('ocr-settings');
+  el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+function toggleRxOcrSettings(){
+  const el = document.getElementById('rx-ocr-settings');
+  el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+  document.getElementById('ocr-space-key-rx').value = loadOcrKey();
+}
+
+async function runImprintOcr(){
+  const statusEl = document.getElementById('ocr-status');
+  const btn = document.getElementById('btn-ocr');
+  const sourceCanvas = document.getElementById('cam-canvas');
+  if(!sourceCanvas.width){
+    statusEl.style.display = 'block';
+    statusEl.textContent = '先に写真を撮影または選択してください。';
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.style.display = 'block';
+
+  const apiKey = document.getElementById('ocr-space-key').value.trim();
+  // OCR.spaceの無料プランはファイルサイズに上限があるため、送信先に応じて
+  // 前処理後の画像サイズを変える(クラウド送信時は控えめに、Tesseract.jsは大きめに)。
+  const processed = preprocessForOcr(sourceCanvas, apiKey ? 1000 : Infinity);
+
+  try{
+    let cleaned = '';
+    if(apiKey){
+      statusEl.textContent = 'OCR.spaceで読み取っています…';
+      cleaned = await ocrViaOcrSpace(processed, apiKey);
+    }else{
+      if(typeof Tesseract === 'undefined'){
+        statusEl.textContent = '文字認識ライブラリを読み込めませんでした。インターネット接続をご確認ください。';
+        btn.disabled = false;
+        return;
+      }
+      statusEl.textContent = '刻印を読み取っています…(初回は数秒〜十数秒かかることがあります)';
+      const result = await Tesseract.recognize(processed, 'eng', {
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-/ '
+      });
+      cleaned = (result.data.text || '').trim().replace(/\s+/g,' ');
+    }
+
+    if(cleaned){
+      document.getElementById('input-imprint').value = cleaned;
+      runSearch();
+      statusEl.textContent = '認識結果: 「' + cleaned + '」(精度は高くありません。写真を見て必ず修正してください)';
+    }else{
+      statusEl.textContent = '文字を検出できませんでした。枠内に刻印面が大きく写るよう撮り直すか、手入力してください。';
+    }
+  }catch(err){
+    statusEl.textContent = '文字認識中にエラーが発生しました(' + (err.message||err) + ')。手入力をお願いします。';
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function ocrViaOcrSpace(canvas, apiKey, lang){
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(async (blob) => {
+      try{
+        if(blob.size > 1024*1024){
+          reject(new Error('画像サイズが大きすぎます(' + Math.round(blob.size/1024) + 'KB)。無料プランは1MB程度が上限のため、撮影し直すか手入力をお試しください。'));
+          return;
+        }
+        const form = new FormData();
+        form.append('apikey', apiKey);
+        form.append('OCREngine', '2');
+        form.append('scale', 'true');
+        form.append('language', lang || 'eng');
+        form.append('file', blob, 'image.jpg');
+        const res = await fetch('https://api.ocr.space/parser/image', { method:'POST', body: form });
+        const contentType = res.headers.get('content-type') || '';
+        if(!contentType.includes('application/json')){
+          const bodyText = await res.text();
+          throw new Error('OCR.spaceから想定外の応答がありました(HTTP ' + res.status + ')。APIキーが正しいか、無料枠の上限に達していないかご確認ください。');
+        }
+        const json = await res.json();
+        if(json.IsErroredOnProcessing){
+          reject(new Error(json.ErrorMessage ? json.ErrorMessage.join(' / ') : 'OCR.spaceでエラーが発生しました'));
+          return;
+        }
+        const text = (json.ParsedResults && json.ParsedResults[0] && json.ParsedResults[0].ParsedText) || '';
+        resolve(text.trim().replace(/\s+/g,' '));
+      }catch(err){ reject(err); }
+    }, 'image/jpeg', 0.85);
+  });
+}
+
+function preprocessForOcr(sourceCanvas, maxOutDim){
+  if(maxOutDim === undefined) maxOutDim = Infinity;
+  // 中央付近(撮影枠に相当する範囲)を切り出し、拡大してから
+  // グレースケール化+簡易的なコントラスト強調を行う。
+  const sw = sourceCanvas.width, sh = sourceCanvas.height;
+  const cropRatio = 0.68; // 枠(reticle)のinset:16%に対応するおおよその範囲
+  const cropW = sw * cropRatio, cropH = sh * cropRatio;
+  const cropX = (sw - cropW)/2, cropY = (sh - cropH)/2;
+
+  const desiredScale = 3;
+  let outW = cropW * desiredScale, outH = cropH * desiredScale;
+  // 上限を超える場合は、上限に収まるよう縮小する(送信先の制限に合わせるため)
+  const longerSide = Math.max(outW, outH);
+  if(longerSide > maxOutDim){
+    const shrink = maxOutDim / longerSide;
+    outW *= shrink; outH *= shrink;
+  }
+
+  const out = document.createElement('canvas');
+  out.width = Math.round(outW);
+  out.height = Math.round(outH);
+  const octx = out.getContext('2d');
+  octx.imageSmoothingEnabled = true;
+  octx.drawImage(sourceCanvas, cropX, cropY, cropW, cropH, 0, 0, out.width, out.height);
+
+  const imgData = octx.getImageData(0, 0, out.width, out.height);
+  const d = imgData.data;
+  // グレースケール化 + コントラスト強調(単純な線形ストレッチ)
+  let min=255, max=0;
+  const gray = new Uint8ClampedArray(d.length/4);
+  for(let i=0, p=0; i<d.length; i+=4, p++){
+    const g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+    gray[p] = g;
+    if(g<min) min=g;
+    if(g>max) max=g;
+  }
+  const range = Math.max(1, max-min);
+  for(let i=0, p=0; i<d.length; i+=4, p++){
+    const v = Math.round((gray[p]-min) * 255 / range);
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  octx.putImageData(imgData, 0, 0);
+  return out;
+}
+
+/* ============ 1錠鑑別:検索ロジック ============ */
+function runSearch(){
+  const imprintQ = document.getElementById('input-imprint').value.trim().toUpperCase();
+  const shapeQ = document.getElementById('input-shape').value;
+  const colorQ = document.getElementById('input-color').value;
+  const resultsEl = document.getElementById('id-results');
+  const combined = DRUG_DB.concat(USER_DB);
+
+  if(!imprintQ && !shapeQ && !colorQ){
+    resultsEl.innerHTML = '<div class="empty-note">刻印コード、形状、色のいずれかを入力すると候補が表示されます。</div>';
+    return;
+  }
+
+  const scored = combined.map((d,idx)=>{
+    let score = 0;
+    const impNorm = (d.imprint||'').toUpperCase().replace(/\s+/g,'');
+    const qNorm = imprintQ.replace(/\s+/g,'');
+    if(imprintQ){
+      if(impNorm === qNorm) score += 70;
+      else if(qNorm.length>0 && impNorm.includes(qNorm)) score += 45;
+      else if(qNorm.length>0 && [...qNorm].some(ch=>impNorm.includes(ch))) score += 8;
+    }
+    if(shapeQ && d.shape === shapeQ) score += 18;
+    if(colorQ && d.color === colorQ) score += 12;
+    return {...d, score, idx};
+  }).filter(d=>d.score>0).sort((a,b)=>b.score-a.score);
+
+  if(scored.length===0){
+    resultsEl.innerHTML = '<div class="empty-note">登録データ内に一致する候補が見つかりませんでした。<br>下の「マイデータベースに登録する」から追加しておくと、次回から検索にヒットします。</div>';
+    return;
+  }
+
+  resultsEl.innerHTML = scored.slice(0,6).map(d=>`
+    <div class="result-card" onclick="openDrugModal(${d.idx})" style="display:flex; gap:10px; align-items:flex-start;">
+      ${d.photo ? `<img src="${d.photo}" style="width:40px; height:40px; object-fit:cover; border-radius:5px; border:1px solid var(--line-strong); flex-shrink:0;">` : ''}
+      <div style="flex:1; min-width:0;">
+        <div class="rc-top"><span class="rname">${d.name}</span><span class="rscore">一致度 ${Math.min(d.score,100)}</span></div>
+        <div class="rgeneric">${d.generic ? d.generic+' ・ ' : ''}${d.dosage||''} ${d.source?'・ '+d.source:''}</div>
+        <div class="rmeta"><span>刻印: ${d.imprint}</span><span>${d.shape||'-'}</span><span>${d.color||'-'}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openDrugModal(idx){
+  const combined = DRUG_DB.concat(USER_DB);
+  const d = combined[idx];
+  document.getElementById('modal-content').innerHTML = `
+    ${d.photo ? `<img src="${d.photo}" style="width:100%; max-height:160px; object-fit:contain; background:var(--white); border:1px solid var(--line); border-radius:8px; margin-bottom:12px;">` : ''}
+    <div class="mtitle">${d.name}</div>
+    <div class="mgeneric">${d.generic || (d.source||'')}</div>
+    <div class="mrow"><span class="mk">分類</span><span class="mv" style="font-family:'Noto Sans JP',sans-serif;">${d.category||'-'}</span></div>
+    <div class="mrow"><span class="mk">刻印</span><span class="mv">${d.imprint}</span></div>
+    <div class="mrow"><span class="mk">形状</span><span class="mv" style="font-family:'Noto Sans JP',sans-serif;">${d.shape||'-'}</span></div>
+    <div class="mrow"><span class="mk">色</span><span class="mv" style="font-family:'Noto Sans JP',sans-serif;">${d.color||'-'}</span></div>
+    <div class="mrow"><span class="mk">用量</span><span class="mv">${d.dosage||'-'}</span></div>
+    <div class="mrow"><span class="mk">製造販売元</span><span class="mv" style="font-family:'Noto Sans JP',sans-serif;">${d.maker||'-'}${d.source?'':'(サンプル)'}</span></div>
+    <div class="mnote">${d.source==='マイデータベース' ? 'これはご自身が登録した情報です。登録内容の正確性はご自身の確認に基づきます。写真がある場合は、今撮影した錠剤と見比べてご確認ください。' : 'この結果はデモ用サンプルデータに基づく参考表示です。実際の医薬品の同定・服薬判断には使用しないでください。'}最終確認は薬剤師・医師、または PMDA / JAPIC の公式情報でお願いします。</div>
+    <a class="mlink" href="https://www.pmda.go.jp/PmdaSearch/iyakuSearch/" target="_blank" rel="noopener">PMDA 医療用医薬品情報検索を開く</a>
+  `;
+  document.getElementById('modal-backdrop').classList.add('show');
+}
+function closeModal(){ document.getElementById('modal-backdrop').classList.remove('show'); }
+function closeModalBg(e){ if(e.target.id==='modal-backdrop') closeModal(); }
+
+/* PMDA公式サイトの検索画面を新しいタブで開く。
+   PMDAは刻印コードだけを直接クエリできる公開APIを提供していないため、
+   公式の医療用医薬品 添付文書検索ページを開き、ユーザー自身がそこで
+   刻印コードを含む文言を検索してもらう形にする(正確な鑑別は必ずPMDA側の
+   記載を確認してもらう)。 */
+function openPmdaSearch(){
+  window.open('https://www.pmda.go.jp/PmdaSearch/iyakuSearch/', '_blank', 'noopener');
+}
+function openJapicSearch(){
+  window.open('https://iyakusearch.japic.or.jp/package_insert', '_blank', 'noopener');
+}
+
+/* ============ マイデータベース(ユーザーが自分で登録するデータ) ============
+   ブラウザの保存機能(localStorage)に保存するため、ページを閉じても消えない。
+   CSVの書き出し/読み込みは、別の端末に移すときのために引き続き使える。 */
+const UD_STORAGE_KEY = 'tabletMyDb_v1';
+let USER_DB = loadUserDb();
+let editingIndex = -1; // -1は新規登録モード、0以上は編集中のインデックス
+let currentUdPhoto = ''; // フォームに一時保持する参考写真(base64)
+
+function handleUdPhoto(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // localStorageの容量を圧迫しないよう、小さく縮小してJPEGで保持する
+      const maxSide = 160;
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      currentUdPhoto = canvas.toDataURL('image/jpeg', 0.6);
+      document.getElementById('ud-photo-preview-img').src = currentUdPhoto;
+      document.getElementById('ud-photo-preview').style.display = 'flex';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function clearUdPhoto(){
+  currentUdPhoto = '';
+  document.getElementById('ud-photo-input').value = '';
+  document.getElementById('ud-photo-preview').style.display = 'none';
+}
+
+function loadUserDb(){
+  try{
+    const raw = localStorage.getItem(UD_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(err){
+    return [];
+  }
+}
+function saveUserDb(){
+  try{
+    localStorage.setItem(UD_STORAGE_KEY, JSON.stringify(USER_DB));
+  }catch(err){
+    alert('端末への保存に失敗しました。ブラウザの設定でサイトデータの保存が許可されているかご確認ください。');
+  }
+}
+
+function addUserDrug(){
+  const name = document.getElementById('ud-name').value.trim();
+  const imprint = document.getElementById('ud-imprint').value.trim();
+  if(!name || !imprint){
+    alert('薬品名と刻印コードは必須です。');
+    return;
+  }
+  const entry = {
+    name,
+    imprint,
+    shape: document.getElementById('ud-shape').value.trim(),
+    color: document.getElementById('ud-color').value.trim(),
+    dosage: document.getElementById('ud-dosage').value.trim(),
+    maker: document.getElementById('ud-maker').value.trim(),
+    photo: currentUdPhoto,
+    packFlag: document.getElementById('ud-pack-flag').checked,
+    generic: '', category: '', source:'マイデータベース'
+  };
+  if(editingIndex >= 0){
+    USER_DB[editingIndex] = entry;
+    editingIndex = -1;
+    document.getElementById('ud-submit-btn').textContent = 'マイデータベースに追加';
+    document.getElementById('ud-cancel-btn').style.display = 'none';
+  }else{
+    USER_DB.push(entry);
+  }
+  saveUserDb();
+  ['ud-name','ud-imprint','ud-shape','ud-color','ud-dosage','ud-maker'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ud-pack-flag').checked = false;
+  clearUdPhoto();
+  renderUserDb();
+  runSearch();
+}
+
+function editUserDrug(i){
+  const d = USER_DB[i];
+  document.getElementById('ud-name').value = d.name||'';
+  document.getElementById('ud-imprint').value = d.imprint||'';
+  document.getElementById('ud-shape').value = d.shape||'';
+  document.getElementById('ud-color').value = d.color||'';
+  document.getElementById('ud-dosage').value = d.dosage||'';
+  document.getElementById('ud-maker').value = d.maker||'';
+  document.getElementById('ud-pack-flag').checked = !!d.packFlag;
+  currentUdPhoto = d.photo || '';
+  if(currentUdPhoto){
+    document.getElementById('ud-photo-preview-img').src = currentUdPhoto;
+    document.getElementById('ud-photo-preview').style.display = 'flex';
+  }else{
+    document.getElementById('ud-photo-preview').style.display = 'none';
+  }
+  editingIndex = i;
+  document.getElementById('ud-submit-btn').textContent = 'この内容で更新';
+  document.getElementById('ud-cancel-btn').style.display = 'block';
+  document.getElementById('ud-name').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function cancelEditUserDrug(){
+  editingIndex = -1;
+  ['ud-name','ud-imprint','ud-shape','ud-color','ud-dosage','ud-maker'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ud-pack-flag').checked = false;
+  clearUdPhoto();
+  document.getElementById('ud-submit-btn').textContent = 'マイデータベースに追加';
+  document.getElementById('ud-cancel-btn').style.display = 'none';
+}
+
+function renderUserDb(){
+  const el = document.getElementById('ud-list');
+  if(USER_DB.length===0){ el.innerHTML = '<div class="empty-note">まだ登録がありません。</div>'; return; }
+  el.innerHTML = USER_DB.map((d,i)=>`
+    <div class="history-row">
+      <span style="display:flex; align-items:center; gap:8px;">
+        ${d.photo ? `<img src="${d.photo}" style="width:28px; height:28px; object-fit:cover; border-radius:4px; border:1px solid var(--line-strong);">` : ''}
+        <span><span class="hname">${d.name}</span> <span class="htag">(${d.imprint})</span> <span class="htag" style="color:${d.packFlag?'var(--teal)':'var(--ink-soft)'};">[${d.packFlag?'一包化':'バラ'}]</span></span>
+      </span>
+      <span style="display:flex; gap:10px;">
+        <span class="htag" style="cursor:pointer; color:var(--teal);" onclick="editUserDrug(${i})">編集</span>
+        <span class="htag" style="cursor:pointer;" onclick="removeUserDrug(${i})">削除</span>
+      </span>
+    </div>`).join('');
+}
+function removeUserDrug(i){
+  if(!confirm('この登録を削除しますか?')) return;
+  USER_DB.splice(i,1);
+  if(editingIndex === i) cancelEditUserDrug();
+  saveUserDb();
+  renderUserDb();
+  runSearch();
+}
+
+function exportUserDb(){
+  if(USER_DB.length===0){ alert('登録済みのデータがありません。'); return; }
+  const header = ['name','imprint','shape','color','dosage','maker','packFlag'];
+  const rows = USER_DB.map(d=>header.map(k=>'"'+String(k==='packFlag' ? (d.packFlag?'1':'0') : (d[k]||'')).replace(/"/g,'""')+'"').join(','));
+  const csv = header.join(',') + '\n' + rows.join('\n');
+  // 先頭にUTF-8のBOMを付ける。これが無いと、Excelなどでは文字コードを
+  // 正しく判定できず、日本語部分が文字化けしてしまう。
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'my-tablet-db.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+function importUserDb(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    // 読み込んだCSVの先頭にBOMが付いていれば取り除く
+    const text = e.target.result.replace(/^\uFEFF/, '');
+    const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+    const header = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+    for(let i=1;i<lines.length;i++){
+      const cells = lines[i].match(/(".*?"|[^,]+)(?=,|$)/g) || [];
+      const vals = cells.map(c=>c.replace(/^"|"$/g,'').replace(/""/g,'"'));
+      const row = {};
+      header.forEach((h,idx)=>row[h]=vals[idx]||'');
+      row.packFlag = (row.packFlag === '1' || row.packFlag === 'true');
+      row.generic=''; row.category=''; row.source='マイデータベース';
+      if(row.name && row.imprint) USER_DB.push(row);
+    }
+    saveUserDb();
+    renderUserDb();
+    runSearch();
+  };
+  reader.readAsText(file);
+}
+
+/* ============ 複数錠剤チェック ============ */
+let multiImg = null;
+let multiMarkers = []; // {x,y,color:[r,g,b]}
+
+let multiCamStream = null;
+function setMultiMode(mode){
+  document.getElementById('btn-multi-mode-cam').classList.toggle('on', mode==='cam');
+  document.getElementById('btn-multi-mode-file').classList.toggle('on', mode==='file');
+  document.getElementById('multi-cam-block').style.display = (mode==='cam') ? 'block' : 'none';
+  document.getElementById('multi-file-block').style.display = (mode==='file') ? 'block' : 'none';
+  if(mode!=='cam' && multiCamStream){ multiCamStream.getTracks().forEach(t=>t.stop()); multiCamStream=null; }
+}
+async function startMultiCamera(){
+  const placeholder = document.getElementById('multi-cam-placeholder');
+  if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia){
+    placeholder.innerHTML = 'このページは安全な接続(HTTPS)で開かれていないため、ブラウザがカメラ機能自体を提供していません。<br>「画像を選択」をお使いください。';
+    placeholder.style.display = 'flex';
+    return;
+  }
+  try{
+    multiCamStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video = document.getElementById('multi-cam-video');
+    video.srcObject = multiCamStream;
+    video.style.display = 'block';
+    syncViewfinderAspect(video, document.getElementById('multi-viewfinder'));
+    placeholder.style.display = 'none';
+    document.getElementById('btn-multi-capture').disabled = false;
+  }catch(err){
+    placeholder.style.display = 'flex';
+    if(err.name === 'NotAllowedError'){
+      placeholder.textContent = 'カメラの利用が許可されていません。ブラウザまたはOSの設定でこのサイトのカメラ権限を許可してください。';
+    }else if(err.name === 'NotFoundError'){
+      placeholder.textContent = '利用できるカメラが見つかりませんでした。「画像を選択」をご利用ください。';
+    }else{
+      placeholder.textContent = 'カメラを起動できませんでした(' + err.name + ')。多くの場合、ページがHTTPSで公開されていないことが原因です。「画像を選択」をご利用ください。';
+    }
+  }
+}
+function captureMultiFrame(){
+  const video = document.getElementById('multi-cam-video');
+  const canvas = document.getElementById('multi-cam-canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  if(multiCamStream){ multiCamStream.getTracks().forEach(t=>t.stop()); multiCamStream=null; }
+  const img = new Image();
+  img.onload = () => processMultiImageEl(img);
+  img.src = canvas.toDataURL('image/png');
+}
+
+function handleMultiUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onerror = () => alert('画像の読み込みに失敗しました。ページの公開方法(ホスティング)に問題がある可能性があります。');
+  reader.onload = e => {
+    const img = new Image();
+    img.onerror = () => alert('画像を表示できませんでした。別の画像形式(JPEG/PNG)でお試しください。');
+    img.onload = () => processMultiImageEl(img);
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function processMultiImageEl(img){
+  multiImg = img;
+  multiMarkers = [];
+  const canvas = document.getElementById('multi-canvas');
+  const maxW = 336;
+  const scale = maxW / img.width;
+  canvas.width = maxW;
+  canvas.height = img.height * scale;
+  canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+  document.getElementById('multi-canvas-wrap').style.display = 'block';
+  document.getElementById('multi-placeholder').style.display = 'none';
+  document.getElementById('multi-pill-list').innerHTML = '';
+  canvas.onclick = onCanvasTap;
+  if(!canvas.dataset.touchBound){
+    canvas.addEventListener('touchend', function(ev){
+      if(ev.changedTouches && ev.changedTouches.length){
+        ev.preventDefault();
+        const t = ev.changedTouches[0];
+        onCanvasTap({clientX:t.clientX, clientY:t.clientY});
+      }
+    }, {passive:false});
+    canvas.dataset.touchBound = '1';
+  }
+  runAutoDetect();
+}
+
+/* ============ 自動検出(背景差分による簡易セグメンテーション) ============
+   1. 画像の外周部分の色を「背景色」とみなす
+   2. 背景色から離れた色のピクセルを「錠剤(前景)」とみなす
+   3. 前景ピクセルをつながり(4近傍)ごとにグループ化する(連結成分ラベリング)
+   4. 小さすぎる/大きすぎるグループはノイズとして除外
+   5. 各グループの中心座標と平均色を「1個の錠剤」として扱う
+   無地に近い背景で錠剤同士が重なっていない場合を想定した簡易ロジックであり、
+   複雑な背景や重なりには対応できない。 */
+function autoDetectPills(canvas){
+  const w = canvas.width, h = canvas.height;
+  const ctx = canvas.getContext('2d');
+  const imgData = ctx.getImageData(0,0,w,h);
+  const d = imgData.data;
+
+  const margin = Math.max(2, Math.round(Math.min(w,h)*0.04));
+  let bgR=0,bgG=0,bgB=0,bgN=0;
+  function addBg(x,y){ const i=(y*w+x)*4; bgR+=d[i]; bgG+=d[i+1]; bgB+=d[i+2]; bgN++; }
+  for(let x=0;x<w;x++){ for(let m=0;m<margin;m++){ addBg(x,m); addBg(x,h-1-m); } }
+  for(let y=0;y<h;y++){ for(let m=0;m<margin;m++){ addBg(m,y); addBg(w-1-m,y); } }
+  bgR/=bgN; bgG/=bgN; bgB/=bgN;
+
+  const FG_THRESHOLD = 38;
+  const isFg = new Uint8Array(w*h);
+  for(let p=0, i=0; p<w*h; p++, i+=4){
+    const dr=d[i]-bgR, dg=d[i+1]-bgG, db=d[i+2]-bgB;
+    isFg[p] = Math.sqrt(dr*dr+dg*dg+db*db) > FG_THRESHOLD ? 1 : 0;
+  }
+
+  const label = new Int32Array(w*h).fill(-1);
+  const qx = new Int32Array(w*h), qy = new Int32Array(w*h);
+  const components = [];
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      const idx = y*w+x;
+      if(!isFg[idx] || label[idx]!==-1) continue;
+      let qhead=0, qtail=0;
+      qx[qtail]=x; qy[qtail]=y; qtail++;
+      label[idx] = components.length;
+      let sumX=0,sumY=0,count=0,sumR=0,sumG=0,sumB=0;
+      while(qhead<qtail){
+        const cx=qx[qhead], cy=qy[qhead]; qhead++;
+        const ci = cy*w+cx, pi = ci*4;
+        sumX+=cx; sumY+=cy; count++;
+        sumR+=d[pi]; sumG+=d[pi+1]; sumB+=d[pi+2];
+        if(cx>0 && isFg[ci-1] && label[ci-1]===-1){ label[ci-1]=components.length; qx[qtail]=cx-1; qy[qtail]=cy; qtail++; }
+        if(cx<w-1 && isFg[ci+1] && label[ci+1]===-1){ label[ci+1]=components.length; qx[qtail]=cx+1; qy[qtail]=cy; qtail++; }
+        if(cy>0 && isFg[ci-w] && label[ci-w]===-1){ label[ci-w]=components.length; qx[qtail]=cx; qy[qtail]=cy-1; qtail++; }
+        if(cy<h-1 && isFg[ci+w] && label[ci+w]===-1){ label[ci+w]=components.length; qx[qtail]=cx; qy[qtail]=cy+1; qtail++; }
+      }
+      components.push({cx:sumX/count, cy:sumY/count, count, color:[Math.round(sumR/count),Math.round(sumG/count),Math.round(sumB/count)]});
+    }
+  }
+
+  const total = w*h;
+  return components
+    .filter(c => c.count > total*0.0015 && c.count < total*0.4)
+    .map(c => ({x:c.cx, y:c.cy, color:c.color}));
+}
+
+function runAutoDetect(){
+  const canvas = document.getElementById('multi-canvas');
+  if(!canvas.width) return;
+  const statusEl = document.getElementById('multi-analysis');
+  statusEl.innerHTML = '<div class="analysis-banner ok"><b>自動検出しています…</b></div>';
+
+  const detected = autoDetectPills(canvas);
+  if(detected.length < 2){
+    multiMarkers = detected;
+    redrawMarkers();
+    statusEl.innerHTML = '<div class="analysis-banner warn"><b>自動検出できませんでした</b>背景と錠剤の区別がつきにくい可能性があります。無地の背景で撮り直すか、写真を直接タップして手動で追加してください。</div>';
+    document.getElementById('multi-pill-list').innerHTML = '';
+    return;
+  }
+  multiMarkers = detected;
+  redrawMarkers();
+  analyzeMulti();
+}
+
+function onCanvasTap(e){
+  const canvas = document.getElementById('multi-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleY;
+
+  // 既存のマークの近くをタップした場合は、追加ではなく削除(トグル)する。
+  // これにより、自動検出の誤検出を消したり、同じ錠剤を二重にマークするのを防げる。
+  const TAP_REMOVE_RADIUS = 16;
+  const hitIdx = multiMarkers.findIndex(m => Math.hypot(m.x-x, m.y-y) < TAP_REMOVE_RADIUS);
+  if(hitIdx !== -1){
+    multiMarkers.splice(hitIdx, 1);
+    redrawMarkers();
+    return;
+  }
+
+  try{
+    const ctx = canvas.getContext('2d');
+    const r = 6;
+    const sample = ctx.getImageData(Math.max(0,x-r), Math.max(0,y-r), r*2, r*2).data;
+    let rr=0, gg=0, bb=0, n=0;
+    for(let i=0;i<sample.length;i+=4){ rr+=sample[i]; gg+=sample[i+1]; bb+=sample[i+2]; n++; }
+    rr = Math.round(rr/n); gg = Math.round(gg/n); bb = Math.round(bb/n);
+    multiMarkers.push({x,y,color:[rr,gg,bb]});
+    redrawMarkers();
+  }catch(err){
+    alert('タップした位置の色を読み取れませんでした。\n原因: ' + err.name + '\n' + err.message + '\n\nこのエラーが出る場合、ページの公開方法(ホスティング)に問題がある可能性が高いです。HTTPSで正しく公開されたURLから開いているかご確認ください。');
+  }
+}
+
+function redrawMarkers(flagged){
+  document.querySelectorAll('.marker').forEach(m=>m.remove());
+  const canvas = document.getElementById('multi-canvas');
+  const wrap = document.getElementById('multi-canvas-wrap');
+  const rect = canvas.getBoundingClientRect();
+  const scale = rect.width / canvas.width;
+  multiMarkers.forEach((m,i)=>{
+    const el = document.createElement('div');
+    el.className = 'marker' + (flagged && flagged.includes(i) ? ' bad' : '');
+    el.style.left = (m.x*scale)+'px';
+    el.style.top = (m.y*scale)+'px';
+    el.innerHTML = `<span class="idx">${i+1}</span>`;
+    wrap.appendChild(el);
+  });
+}
+
+function resetMultiMarkers(){
+  multiMarkers = [];
+  redrawMarkers();
+  document.getElementById('multi-analysis').innerHTML = '';
+  document.getElementById('multi-pill-list').innerHTML = '';
+}
+
+function colorDist(a,b){
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2);
+}
+
+function analyzeMulti(){
+  const analysisEl = document.getElementById('multi-analysis');
+  const listEl = document.getElementById('multi-pill-list');
+  if(multiMarkers.length < 2){
+    analysisEl.innerHTML = '<div class="analysis-banner warn"><b>マークが不足しています</b>比較のため、錠剤を2個以上タップしてください。</div>';
+    return;
+  }
+
+  // 色が近いもの同士をグループ化し(しきい値以下の距離なら同じグループ)、
+  // 最大グループ以外を「混入の可能性あり」として検出する。
+  // 平均との差を見る方式だと、混入している錠剤自体が平均を引っ張ってしまい
+  // 少数の錠剤では検出しにくくなるため、グループ分け方式にしている。
+  const CLUSTER_THRESHOLD = 42;
+  const n = multiMarkers.length;
+  const groupId = new Array(n).fill(-1);
+  let nextGroup = 0;
+  for(let i=0;i<n;i++){
+    if(groupId[i] !== -1) continue;
+    groupId[i] = nextGroup;
+    for(let j=i+1;j<n;j++){
+      if(groupId[j] !== -1) continue;
+      if(colorDist(multiMarkers[i].color, multiMarkers[j].color) < CLUSTER_THRESHOLD){
+        groupId[j] = nextGroup;
+      }
+    }
+    nextGroup++;
+  }
+  const groupSizes = {};
+  groupId.forEach(g => groupSizes[g] = (groupSizes[g]||0) + 1);
+  const sortedGroups = Object.entries(groupSizes).sort((a,b)=>b[1]-a[1]);
+  const majorityGroup = parseInt(sortedGroups[0][0]);
+  const majoritySize = sortedGroups[0][1];
+  const isTie = sortedGroups.length > 1 && sortedGroups[1][1] === majoritySize;
+
+  let flaggedIdx = [];
+  if(!isTie){
+    flaggedIdx = groupId.map((g,i)=>({g,i})).filter(o=>o.g !== majorityGroup).map(o=>o.i);
+  }
+
+  redrawMarkers(flaggedIdx);
+
+  if(isTie){
+    analysisEl.innerHTML = `<div class="analysis-banner warn"><b>判定できませんでした</b>色のグループがきれいに分かれ、どちらが多数派か決められません。錠剤をもう少し追加してタップしてください。</div>`;
+  }else if(flaggedIdx.length === 0){
+    analysisEl.innerHTML = `<div class="analysis-banner ok"><b>異なる錠剤は検出されませんでした</b>検出した ${n} 点の色はすべて同じグループにまとまっています。</div>`;
+  }else{
+    analysisEl.innerHTML = `<div class="analysis-banner warn"><b>混入の可能性がある錠剤があります</b>No.${flaggedIdx.map(i=>i+1).join(', ')} の色が、他の大多数(${majoritySize}個)のグループと明らかに異なります。目視でご確認ください。</div>`;
+  }
+
+  listEl.innerHTML = multiMarkers.map((m,i)=>{
+    const bad = flaggedIdx.includes(i);
+    return `<div class="pill-row ${bad?'bad':''}">
+      <span class="lbl">${i+1}</span>
+      <span class="swatch" style="background:rgb(${m.color.join(',')})"></span>
+      <span>RGB(${m.color.join(', ')})</span>
+      <span class="stat">${bad?'要確認':'標準範囲'}</span>
+    </div>`;
+  }).join('');
+}
+
+renderUserDb();
+document.getElementById('ocr-space-key').value = loadOcrKey();
+document.getElementById('ocr-space-key-rx').value = loadOcrKey();
+document.getElementById('gemini-key-rx').value = loadGeminiKey();
+document.getElementById('gemini-model-rx').value = (function(){ try{ return localStorage.getItem(GEMINI_MODEL_STORAGE) || ''; }catch(e){ return ''; } })();
+
+/* ============ 処方せん:カメラ/画像読み込み ============ */
+let rxCamStream = null;
+function setRxMode(mode){
+  document.getElementById('btn-rx-mode-cam').classList.toggle('on', mode==='cam');
+  document.getElementById('btn-rx-mode-file').classList.toggle('on', mode==='file');
+  document.getElementById('rx-cam-block').style.display = (mode==='cam') ? 'block' : 'none';
+  document.getElementById('rx-file-block').style.display = (mode==='file') ? 'block' : 'none';
+  if(mode!=='cam' && rxCamStream){ rxCamStream.getTracks().forEach(t=>t.stop()); rxCamStream=null; }
+}
+async function startRxCamera(){
+  const placeholder = document.getElementById('rx-cam-placeholder');
+  if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getUserMedia){
+    placeholder.innerHTML = 'このページは安全な接続(HTTPS)で開かれていないため、ブラウザがカメラ機能自体を提供していません。<br>「画像を選択」をお使いください。';
+    placeholder.style.display = 'flex';
+    return;
+  }
+  try{
+    rxCamStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video = document.getElementById('rx-cam-video');
+    video.srcObject = rxCamStream;
+    video.style.display = 'block';
+    syncViewfinderAspect(video, document.getElementById('rx-viewfinder'));
+    placeholder.style.display = 'none';
+    document.getElementById('btn-rx-capture').disabled = false;
+  }catch(err){
+    placeholder.style.display = 'flex';
+    if(err.name === 'NotAllowedError'){
+      placeholder.textContent = 'カメラの利用が許可されていません。ブラウザまたはOSの設定でこのサイトのカメラ権限を許可してください。';
+    }else if(err.name === 'NotFoundError'){
+      placeholder.textContent = '利用できるカメラが見つかりませんでした。「画像を選択」をご利用ください。';
+    }else{
+      placeholder.textContent = 'カメラを起動できませんでした(' + err.name + ')。多くの場合、ページがHTTPSで公開されていないことが原因です。「画像を選択」をご利用ください。';
+    }
+  }
+}
+function captureRxFrame(){
+  const video = document.getElementById('rx-cam-video');
+  const canvas = document.getElementById('rx-cam-canvas');
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  if(rxCamStream){ rxCamStream.getTracks().forEach(t=>t.stop()); rxCamStream=null; }
+  showRxImage(canvas.toDataURL('image/png'));
+}
+function handleRxUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onerror = () => alert('画像の読み込みに失敗しました。');
+  reader.onload = e => showRxImage(e.target.result);
+  reader.readAsDataURL(file);
+}
+function showRxImage(dataUrl){
+  const img = document.getElementById('rx-image-preview-img');
+  img.onload = () => {
+    const canvas = document.getElementById('rx-cam-canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    document.getElementById('btn-rx-ocr').style.display = 'block';
+  };
+  img.src = dataUrl;
+  document.getElementById('rx-image-preview').style.display = 'block';
+  document.getElementById('rx-ocr-status').style.display = 'none';
+}
+
+/* ============ Gemini(処方せんの文字認識) ============ */
+const GEMINI_KEY_STORAGE = 'tabletGeminiKey_v1';
+const GEMINI_MODEL_STORAGE = 'tabletGeminiModel_v1';
+function loadGeminiKey(){ try{ return localStorage.getItem(GEMINI_KEY_STORAGE) || ''; }catch(err){ return ''; } }
+function loadGeminiModel(){ try{ return localStorage.getItem(GEMINI_MODEL_STORAGE) || 'gemini-3.5-flash-lite'; }catch(err){ return 'gemini-3.5-flash-lite'; } }
+function saveGeminiSettings(){
+  const k = document.getElementById('gemini-key-rx').value.trim();
+  const m = document.getElementById('gemini-model-rx').value.trim();
+  try{ localStorage.setItem(GEMINI_KEY_STORAGE, k); localStorage.setItem(GEMINI_MODEL_STORAGE, m); }catch(err){}
+}
+const RX_GEMINI_PROMPT =
+'これは日本の処方せん(または薬剤情報)の画像です。記載されている内服薬を、1行に1剤ずつ、次の形式だけで出力してください。\n' +
+'薬品名(規格) 1日の総量+単位 1日の回数×用法\n' +
+'例:\n' +
+'アムロジピン錠5mg 1錠 1×朝食後\n' +
+'ミヤBM錠 3錠 3×毎食後\n' +
+'ツムラ桂枝茯苓丸(25) 3包 3×毎食後\n' +
+'ルール:\n' +
+'- 薬品名と規格の間にスペースを入れない。薬品名と総量の間は半角スペース1つ。\n' +
+'- 総量は「1回量×回数」で計算した1日分の量。頓服は1回量を書き、回数は1とする(例: ロキソニン錠60mg 1錠 1×頓服)。\n' +
+'- 用法は 朝食後 / 昼食後 / 夕食後 / 毎食後 / 朝夕食後 / 就寝前 / 頓服 など、画像の記載に従う。\n' +
+'- 数字(規格・総量・回数・番号)は、すべて半角で書く。\n' +
+'- 漢方薬は、会社名・薬品名・番号を省略せず、例のように「ツムラ桂枝茯苓丸(25)」の形で薬品名に含める。\n' +
+'- 日数、外用薬、注射は出力しない。\n' +
+'- 患者の氏名・生年月日・住所・保険者番号・医療機関名などの個人情報は出力しない。\n' +
+'- 読めない部分は推測せず「?」と書く。読めない薬も省略せず、読めた部分だけを1行で出力する。\n' +
+'- 説明文や記号(```など)は付けず、薬の行だけを出力する。';
+
+async function rxViaGemini(canvas, apiKey, model, onText){
+  const small = resizeForOcrSpace(canvas, 1600);
+  const b64 = small.toDataURL('image/jpeg', 0.8).split(',')[1];
+  // Gemini 3系は temperature 等を使わず、思考の深さ(thinkingLevel)で調整する。
+  const genConfig = /^gemini-3/.test(model) ? { thinkingConfig: { thinkingLevel: 'low' } } : {};
+  // ストリーミング(届いた分から順に表示)。全体の時間ではなく、
+  // 「何も届かない状態が120秒続いたら」打ち切る。
+  const ctrl = new AbortController();
+  let timer;
+  const arm = () => { clearTimeout(timer); timer = setTimeout(() => ctrl.abort(), 120000); };
+  const timeoutErr = () => new Error('Geminiから120秒間、何も届きませんでした。通信状況を確認して、もう一度お試しください');
+  arm();
+  let full = '';
+  try{
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':streamGenerateContent?alt=sse', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [ { text: RX_GEMINI_PROMPT }, { inline_data: { mime_type: 'image/jpeg', data: b64 } } ] }],
+        generationConfig: genConfig
+      })
+    });
+    if(!res.ok){
+      const json = await res.json().catch(() => ({}));
+      const e = new Error((json.error && json.error.message) || ('Gemini HTTP ' + res.status));
+      e.status = res.status;
+      throw e;
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while(true){
+      const { done, value } = await reader.read();
+      if(done) break;
+      arm();
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while((idx = buf.indexOf('\n')) >= 0){
+        const line = buf.slice(0, idx).trim();
+        buf = buf.slice(idx + 1);
+        if(!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if(!data || data === '[DONE]') continue;
+        try{
+          const j = JSON.parse(data);
+          const parts = (j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts) || [];
+          parts.forEach(p => { if(p.text && !p.thought) full += p.text; });
+          if(onText) onText(full.replace(/```[a-z]*/g, ''));
+        }catch(e){ /* 途中の欠けたデータは無視 */ }
+      }
+    }
+  }catch(err){
+    if(err.name === 'AbortError') throw timeoutErr();
+    if(err instanceof TypeError) throw new Error('Geminiに接続できませんでした(' + err.message + ')。通信状況をご確認ください');
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
+  return full.replace(/```[a-z]*/g, '').trim();
+}
+
+/* Gemini 新モデルの標準API「Interactions API」で読み取る。
+   従来の generateContent 経由より新モデルでは速い可能性があるため、こちらを先に試し、
+   使えない場合(未対応・通信方式の違いなど)は従来方式(rxViaGemini)に自動で切り替える。 */
+let rxGeminiPath = '';
+function extractInteractionText(json){
+  if(json && typeof json.output_text === 'string') return json.output_text;
+  const texts = [];
+  const walk = (o) => {
+    if(!o || typeof o !== 'object') return;
+    if(Array.isArray(o)){ o.forEach(walk); return; }
+    if(o.type === 'text' && typeof o.text === 'string'){ texts.push(o.text); return; }
+    Object.keys(o).forEach(k => { if(k === 'input' || k === 'usage') return; walk(o[k]); });
+  };
+  walk((json && (json.outputs || json.steps)) || json);
+  return texts.join('\n');
+}
+async function rxViaGeminiInteractions(canvas, apiKey, model){
+  const small = resizeForOcrSpace(canvas, 1600);
+  const b64 = small.toDataURL('image/jpeg', 0.8).split(',')[1];
+  const body = { model: model, input: [ { type: 'text', text: RX_GEMINI_PROMPT }, { type: 'image', data: b64, mime_type: 'image/jpeg' } ] };
+  if(/^gemini-3/.test(model)) body.generation_config = { thinking_level: 'low' };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 180000);
+  try{
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(body)
+    });
+    const json = await res.json().catch(() => ({}));
+    if(!res.ok){
+      const e = new Error((json.error && json.error.message) || ('Gemini HTTP ' + res.status));
+      e.status = res.status;
+      throw e;
+    }
+    return extractInteractionText(json).replace(/```[a-z]*/g, '').trim();
+  }catch(err){
+    if(err.name === 'AbortError'){
+      const e = new Error('Geminiから180秒以内に応答がありませんでした。通信状況を確認して、もう一度お試しください');
+      e.noFallback = true;
+      throw e;
+    }
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+async function rxViaGeminiAuto(canvas, apiKey, model, onText){
+  try{
+    rxGeminiPath = 'Interactions API';
+    return await rxViaGeminiInteractions(canvas, apiKey, model);
+  }catch(err){
+    const busy = err.status === 503 || err.status === 429 || /high demand|overloaded|UNAVAILABLE/i.test(err.message || '');
+    const canFallback = !err.noFallback && !busy && (err instanceof TypeError || [400,404,405,501].includes(err.status));
+    if(!canFallback) throw err;
+    rxGeminiPath = '従来API';
+    return await rxViaGemini(canvas, apiKey, model, onText);
+  }
+}
+
+/* ============ 処方せん:文字認識(OCR) ============
+   刻印OCRと違い、こちらは印刷された文書の文字を読み取るため、
+   一般的なOCRとしては条件が良い(精度が出やすい)。日本語を含むため、
+   Tesseract.js利用時は 'jpn+eng' を指定する。 */
+async function runRxOcr(){
+  const statusEl = document.getElementById('rx-ocr-status');
+  const btn = document.getElementById('btn-rx-ocr');
+  const sourceCanvas = document.getElementById('rx-cam-canvas');
+  if(!sourceCanvas.width){
+    statusEl.style.display = 'block';
+    statusEl.textContent = '先に写真を撮影または選択してください。';
+    return;
+  }
+  btn.disabled = true;
+  statusEl.style.display = 'block';
+  const apiKey = (document.getElementById('ocr-space-key-rx').value || document.getElementById('ocr-space-key').value).trim();  try{
+    let text = '';
+    const geminiKey = loadGeminiKey();
+    if(geminiKey){
+      const t0 = Date.now();
+      let note = '';
+      const showStatus = () => {
+        statusEl.textContent = 'Geminiで読み取っています…(' + Math.round((Date.now()-t0)/1000) + '秒)' + (rxGeminiPath ? ' [' + rxGeminiPath + ']' : '') + note;
+      };
+      showStatus();
+      const tick = setInterval(showStatus, 1000);
+      try{
+        // Google側が混み合っている場合(503など)は、少し待って自動で再試行する(最大3回)
+        let attempt = 0;
+        while(true){
+          try{
+            text = await rxViaGeminiAuto(sourceCanvas, geminiKey, loadGeminiModel(), function(t){ document.getElementById('rx-raw-text').value = t; });
+            break;
+          }catch(e){
+            attempt++;
+            const busy = e.status === 503 || /high demand|overloaded|UNAVAILABLE/i.test(e.message || '');
+            if(busy && attempt <= 3){
+              note = ' ※Geminiが混み合っています。再試行中(' + attempt + '/3)';
+              await new Promise(r => setTimeout(r, attempt * 5000));
+              continue;
+            }
+            if(busy) e.message = 'Geminiが混み合っています。少し時間をおいてからお試しください(' + e.message + ')';
+            throw e;
+          }
+        }
+      }finally{
+        clearInterval(tick);
+      }
+    }else if(apiKey){
+      statusEl.textContent = 'OCR.spaceで読み取っています…';
+      const resized = resizeForOcrSpace(sourceCanvas, 1400);
+      text = await ocrViaOcrSpace(resized, apiKey, 'jpn');
+    }else{
+      if(typeof Tesseract === 'undefined'){
+        statusEl.textContent = '文字認識ライブラリを読み込めませんでした。インターネット接続をご確認ください。';
+        btn.disabled = false;
+        return;
+      }
+      statusEl.textContent = '文字を読み取っています…(初回は日本語データの読み込みで時間がかかることがあります)';
+      const processed = binarizeForOcr(sourceCanvas);
+      const result = await Tesseract.recognize(processed, 'jpn+eng', {
+        tessedit_pageseg_mode: '6'
+      });
+      text = (result.data.text || '').trim();
+    }
+    if(text){
+      document.getElementById('rx-raw-text').value = text;
+      statusEl.textContent = '読み取りが完了しました。内容に誤りがないか確認し、必要なら修正してから「この文章を解析する」を押してください。';
+    }else{
+      statusEl.textContent = '文字を検出できませんでした。明るい場所で、書類全体が水平・鮮明に写るように撮り直すか、手入力してください。';
+    }
+  }catch(err){
+    statusEl.textContent = '文字認識中にエラーが発生しました(' + (err.message||err) + ')。手入力をお願いします。';
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+/* 大きすぎる画像を、指定した長辺サイズに収まるよう縮小するだけの処理
+   (OCR.spaceの無料プランのファイルサイズ上限に収めるため)。 */
+function resizeForOcrSpace(sourceCanvas, maxSide){
+  const w = sourceCanvas.width, h = sourceCanvas.height;
+  const scale = Math.min(1, maxSide / Math.max(w,h));
+  if(scale >= 1) return sourceCanvas;
+  const out = document.createElement('canvas');
+  out.width = Math.round(w*scale);
+  out.height = Math.round(h*scale);
+  out.getContext('2d').drawImage(sourceCanvas, 0, 0, out.width, out.height);
+  return out;
+}
+
+/* 印刷物のOCR向けに、グレースケール化してからOtsu法で白黒二値化する。
+   写真特有の影・色ムラ・コントラスト不足を取り除き、Tesseract.jsの
+   文字認識精度を上げるための前処理。処理速度のため、長辺2000px程度に
+   縮小してから処理する。 */
+function binarizeForOcr(sourceCanvas){
+  const w0 = sourceCanvas.width, h0 = sourceCanvas.height;
+  const maxSide = 2000;
+  const scale = Math.min(1, maxSide / Math.max(w0,h0));
+  const w = Math.round(w0*scale), h = Math.round(h0*scale);
+
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const octx = out.getContext('2d');
+  octx.drawImage(sourceCanvas, 0, 0, w, h);
+
+  const imgData = octx.getImageData(0, 0, w, h);
+  const d = imgData.data;
+  const n = w*h;
+  const gray = new Float64Array(n);
+  for(let i=0, p=0; i<d.length; i+=4, p++){
+    gray[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  }
+
+  // 局所適応二値化(Bradley法): 画像全体を1つの基準で二値化するのではなく、
+  // 各ピクセルの周辺(局所領域)の平均の明るさと比較して判定する。
+  // これにより、白とグレーが交互に並ぶ背景(縞模様)や、影・照明のムラがあっても、
+  // それぞれの領域ごとに適切に文字と背景を分離しやすくなる。
+  // 積分画像(summed area table)を使い、局所領域の合計を高速に求める。
+  const integral = new Float64Array((w+1)*(h+1));
+  for(let y=0; y<h; y++){
+    let rowSum = 0;
+    const rowBase = (y+1)*(w+1);
+    const prevRowBase = y*(w+1);
+    for(let x=0; x<w; x++){
+      rowSum += gray[y*w+x];
+      integral[rowBase+(x+1)] = integral[prevRowBase+(x+1)] + rowSum;
+    }
+  }
+  function areaSum(x0,y0,x1,y1){
+    x0 = Math.max(0,x0); y0 = Math.max(0,y0);
+    x1 = Math.min(w,x1); y1 = Math.min(h,y1);
+    if(x1<=x0 || y1<=y0) return 0;
+    return integral[y1*(w+1)+x1] - integral[y0*(w+1)+x1] - integral[y1*(w+1)+x0] + integral[y0*(w+1)+x0];
+  }
+
+  const windowSize = Math.max(15, Math.round(w/10)); // 局所領域の一辺のサイズ
+  const half = Math.floor(windowSize/2);
+  const T = 0.88; // 局所平均に対するしきい値の割合(小さいほど文字と判定されやすい)
+
+  for(let y=0; y<h; y++){
+    for(let x=0; x<w; x++){
+      const x0=x-half, x1=x+half+1, y0=y-half, y1=y+half+1;
+      const count = (Math.min(w,x1)-Math.max(0,x0)) * (Math.min(h,y1)-Math.max(0,y0));
+      const localMean = areaSum(x0,y0,x1,y1) / count;
+      const p = y*w+x;
+      const v = gray[p] < localMean*T ? 0 : 255;
+      const di = p*4;
+      d[di]=d[di+1]=d[di+2]=v;
+    }
+  }
+  octx.putImageData(imgData, 0, 0);
+  return out;
+}
+
+/* ============ 処方せん:テキスト解析 ============
+   「薬品名(用量) 総量(単位) 回数×タイミング」という一般的な処方せんの表記を、
+   簡単なルールで分解する。手書き・独自略語・イレギュラーな書式には対応できないため、
+   解析結果は必ず目視で確認・修正することを前提にしている。 */
+let rxItems = [];
+
+function splitRxSegments(text){
+  return text.split(/[、,\n]+/).map(s=>s.trim()).filter(s=>s.length>0);
+}
+function parseRxSegment(seg){
+  const m = seg.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(錠|カプセル|包|mL|ml|g|滴)?\s*(\d+(?:\.\d+)?)\s*[×xX]\s*(.+)$/);
+  if(!m) return {raw:seg, name:seg, doseTotal:'', unit:'錠', freq:'', timingRaw:'', unparsed:true};
+  return {
+    raw: seg,
+    name: m[1].trim(),
+    doseTotal: parseFloat(m[2]),
+    unit: m[3] || '錠',
+    freq: parseFloat(m[4]),
+    timingRaw: m[5].trim(),
+    unparsed: false
+  };
+}
+function parseRxText(){
+  // 全角の数字・英字・記号(例: １錠、３×)を半角にそろえてから解析する
+  const text = document.getElementById('rx-raw-text').value.normalize('NFKC').replace(/[✕✖]/g, '×');
+  document.getElementById('rx-raw-text').value = text;
+  if(!text.trim()){ alert('テキストが入力されていません。'); return; }
+  const segs = splitRxSegments(text);
+  rxItems = segs.map(parseRxSegment);
+  renderRxItems();
+}
+function addRxItemRow(){
+  rxItems.push({raw:'', name:'', doseTotal:'', unit:'錠', freq:'', timingRaw:'', unparsed:false});
+  renderRxItems();
+}
+function updateRxItem(i, field, value){
+  if(!rxItems[i]) return;
+  rxItems[i][field] = (field==='doseTotal' || field==='freq') ? value : value;
+  rxItems[i].unparsed = false;
+}
+function removeRxItem(i){
+  rxItems.splice(i,1);
+  renderRxItems();
+}
+function renderRxItems(){
+  const el = document.getElementById('rx-item-list');
+  if(rxItems.length===0){ el.innerHTML = '<div class="empty-note">まだ項目がありません。テキストを解析するか、行を追加してください。</div>'; return; }
+  el.innerHTML = rxItems.map((it,i)=>`
+    <div style="border:1px solid var(--line); border-radius:6px; padding:10px; margin-bottom:8px; ${it.unparsed?'border-color:var(--alert); background:var(--alert-dim);':''}">
+      ${it.unparsed ? '<div style="font-size:10.5px; color:var(--alert); margin-bottom:6px;">自動解析できませんでした。手入力で修正してください。</div>' : ''}
+      <input type="text" value="${(it.name||'').replace(/"/g,'&quot;')}" placeholder="薬品名" oninput="updateRxItem(${i},'name',this.value)" style="width:100%; margin-bottom:6px; border:1px solid var(--line-strong); border-radius:4px; padding:6px 8px; font-size:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+        <input type="number" step="0.5" value="${it.doseTotal}" placeholder="総量" oninput="updateRxItem(${i},'doseTotal',this.value)" style="border:1px solid var(--line-strong); border-radius:4px; padding:6px 8px; font-size:12px;">
+        <input type="text" value="${it.unit||''}" placeholder="単位" oninput="updateRxItem(${i},'unit',this.value)" style="border:1px solid var(--line-strong); border-radius:4px; padding:6px 8px; font-size:12px;">
+        <input type="number" step="1" value="${it.freq}" placeholder="回数/日" oninput="updateRxItem(${i},'freq',this.value)" style="border:1px solid var(--line-strong); border-radius:4px; padding:6px 8px; font-size:12px;">
+      </div>
+      <div style="display:flex; gap:6px;">
+        <input type="text" value="${(it.timingRaw||'').replace(/"/g,'&quot;')}" placeholder="タイミング(例: 朝食後、毎食後、頓服)" oninput="updateRxItem(${i},'timingRaw',this.value)" style="flex:1; border:1px solid var(--line-strong); border-radius:4px; padding:6px 8px; font-size:12px;">
+        <button class="btn" style="flex:0 0 auto; padding:6px 10px;" onclick="removeRxItem(${i})">削除</button>
+      </div>
+    </div>`).join('');
+}
+
+/* ============ 処方せん:タイミング分類・仕分け ============ */
+function classifyTiming(raw){
+  raw = (raw||'').trim();
+  if(/頓服|頓用/.test(raw)) return {slots:['頓服'], isPRN:true};
+  if(/毎食後/.test(raw)) return {slots:['朝食後','昼食後','夕食後']};
+  if(/毎食前/.test(raw)) return {slots:['朝食前','昼食前','夕食前']};
+  const isBefore = /食前/.test(raw);
+  const suffix = isBefore ? '食前' : '食後';
+  const slots = [];
+  if(/朝/.test(raw)) slots.push('朝'+suffix);
+  if(/昼/.test(raw)) slots.push('昼'+suffix);
+  if(/夕/.test(raw)) slots.push('夕'+suffix);
+  if(/就寝/.test(raw)) slots.push('就寝前');
+  if(slots.length===0) slots.push(raw || 'その他');
+  return {slots, isPRN:false};
+}
+/* ---- 薬品名の照合(全角/半角・表記ゆれ・番号の抜けに強い部分一致) ----
+   1. 全角/半角をそろえ(NFKC)、空白・括弧・屋号(「…」)・剤形(錠/OD/顆粒など)を除いた「核となる名前」で比べる。
+   2. 規格(5mgなど)と、漢方の番号(25など)は別に取り出して比べる。番号が片方に無くても一致とみなすが、
+      両方にあって食い違う場合は別の薬として扱う。
+   3. 核となる名前が完全一致、または一方がもう一方に含まれる(3文字以上)場合に「一致」とする。
+   4. 複数の登録に一致し、一包化の可否が分かれる場合は、勝手に選ばず「要確認」にする。
+   5. 綴りが近いだけ(読み間違いの可能性)の場合は、自動では採用せず「近い登録」として案内する。 */
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+const KAMPO_MAKERS = /^(ツムラ|クラシエ|コタロー|ジュンコウ|大峰|イスクラ|太虎堂|三和|テイコク|オースギ|カネボウ|松浦|本草)$/;
+function drugKeys(raw){
+  let s = (raw||'').normalize('NFKC').toLowerCase();
+  s = s.replace(/[「『][^」』]*[」』]/g, '');
+  s = s.replace(/(\d+)\s*番/g, '$1');
+  const strengths = [];
+  s = s.replace(/(\d+(?:\.\d+)?)\s*(mg|μg|µg|ug|g|ml|%|単位|iu)/g, function(m, n, u){
+    strengths.push(parseFloat(n) + ((u==='ug'||u==='µg') ? 'μg' : u));
+    return ' ';
+  });
+  const ids = [];
+  s = s.replace(/\d+(?:\.\d+)?/g, function(m){ ids.push(String(parseFloat(m))); return ' '; });
+  s = s.replace(/[\s\u3000()\[\]【】<>\-‐‑–—―−・、,。:;\/]/g, '');
+  s = s.replace(/(錠|カプセル|cap|tab|od|散|顆粒|細粒|ドライシロップ|エキス|医療用|内服液|シロップ|フィルムコート|フィルム)+$/, '');
+  return {core:s, strengths:strengths, ids:ids};
+}
+function lcsLen(a, b){
+  let best = 0;
+  const prev = new Array(b.length + 1).fill(0);
+  for(let i=1; i<=a.length; i++){
+    let diag = 0;
+    for(let j=1; j<=b.length; j++){
+      const tmp = prev[j];
+      prev[j] = (a[i-1] === b[j-1]) ? diag + 1 : 0;
+      if(prev[j] > best) best = prev[j];
+      diag = tmp;
+    }
+  }
+  return best;
+}
+function findUserDbMatchEx(name){
+  const q = drugKeys(name);
+  if(!q.core) return {kind:'none'};
+  const cands = [];
+  let near = null;
+  USER_DB.forEach(function(d){
+    const k = drugKeys(d.name);
+    if(!k.core) return;
+    const idsShared = q.ids.length>0 && q.ids.some(x => k.ids.includes(x));
+    const idsOk = q.ids.length===0 || k.ids.length===0 || idsShared;
+    let score = 0;
+    if(q.core === k.core){
+      score = 100;
+    }else{
+      const sh = q.core.length <= k.core.length ? q.core : k.core;
+      const lo = q.core.length <= k.core.length ? k.core : q.core;
+      if(lo.includes(sh)){
+        if(sh.length >= 3 && !KAMPO_MAKERS.test(sh)) score = 70;
+        else if(idsShared) score = 70;
+      }
+    }
+    if(score && !idsOk) score = 0;
+    if(score){
+      const overlap = q.strengths.length>0 && k.strengths.length>0 && q.strengths.some(x => k.strengths.includes(x));
+      const diff = q.strengths.length>0 && k.strengths.length>0 && !overlap;
+      cands.push({d:d, score: score + (overlap ? 5 : 0), strengthDiff: diff});
+    }else if(idsOk){
+      const l = lcsLen(q.core, k.core);
+      const minLen = Math.min(q.core.length, k.core.length);
+      if(l >= 4 && l >= minLen*0.6 && (!near || l > near.l)) near = {d:d, l:l};
+    }
+  });
+  if(cands.length){
+    cands.sort((a,b) => b.score - a.score);
+    const top = cands.filter(c => c.score === cands[0].score);
+    const flags = new Set(top.map(c => !!c.d.packFlag));
+    if(flags.size > 1){
+      return {kind:'ambiguous', hint:'複数の登録に一致し、一包化の可否が分かれています: ' + top.map(c => '「' + c.d.name + '」(' + (c.d.packFlag?'一包化':'バラ') + ')').join('、') + '。薬剤師に確認してください。'};
+    }
+    const best = top[0];
+    return {kind: best.score >= 100 ? 'exact' : 'partial', drug: best.d, strengthDiff: best.strengthDiff};
+  }
+  if(near){
+    return {kind:'near', hint:'近い登録があります: 「' + near.d.name + '」(' + (near.d.packFlag?'一包化':'バラ') + ')。同じ薬なら、薬品名を登録名に合わせて直してください(読み間違いの可能性)。'};
+  }
+  return {kind:'none'};
+}
+function findUserDbMatch(name){
+  const r = findUserDbMatchEx(name);
+  return (r.kind==='exact' || r.kind==='partial') ? r.drug : null;
+}
+function formatDose(n){
+  if(n===null || n===undefined || n==='' || isNaN(n)) return '';
+  return (Math.round(n*100)/100).toString();
+}
+
+function buildRxGroups(){
+  if(rxItems.length===0){ alert('薬品リストが空です。先にテキストを解析するか、行を追加してください。'); return; }
+
+  const packBySlot = {};
+  const bara = [];
+  const prn = [];
+  const unknown = [];
+  const checks = [];
+  const slotOrder = ['朝食前','朝食後','昼食前','昼食後','夕食前','夕食後','就寝前'];
+
+  rxItems.forEach(it=>{
+    const name = (it.name||'').trim();
+    if(!name) return;
+    const {slots, isPRN} = classifyTiming(it.timingRaw);
+    const doseTotal = parseFloat(it.doseTotal);
+    const freqCount = slots.length || parseFloat(it.freq) || 1;
+    const perDose = (!isPRN && !isNaN(doseTotal)) ? doseTotal / freqCount : doseTotal;
+    const unit = it.unit || '錠';
+    const doseLabel = (!isNaN(perDose) && it.doseTotal!=='') ? formatDose(perDose)+unit : (it.doseTotal||'')+unit;
+
+    if(isPRN){
+      prn.push({name, doseLabel, timingRaw: it.timingRaw});
+      return;
+    }
+    const r = findUserDbMatchEx(name);
+    if(r.kind !== 'exact' && r.kind !== 'partial'){
+      unknown.push({name, doseLabel, timingRaw: it.timingRaw, hint: r.hint || ''});
+      return;
+    }
+    const match = r.drug;
+    if(r.kind === 'partial' || r.strengthDiff){
+      checks.push({name, regName: match.name, partial: r.kind === 'partial', strengthDiff: !!r.strengthDiff});
+    }
+    if(match.packFlag){
+      slots.forEach(slot=>{
+        if(!packBySlot[slot]) packBySlot[slot] = [];
+        packBySlot[slot].push(name + ' ' + doseLabel);
+      });
+    }else{
+      bara.push({name, doseLabel, timingRaw: it.timingRaw});
+    }
+  });
+
+  let html = '';
+  const usedSlots = slotOrder.filter(s=>packBySlot[s] && packBySlot[s].length>0);
+  const extraSlots = Object.keys(packBySlot).filter(s=>!slotOrder.includes(s));
+  const allSlots = usedSlots.concat(extraSlots);
+
+  if(allSlots.length>0){
+    html += '<div class="section-label">【一包化】</div>';
+    html += '<div style="border:1px solid var(--teal); border-radius:7px; padding:12px 14px; margin-bottom:14px; background:var(--teal-dim);">';
+    html += allSlots.map(slot => `<div style="margin-bottom:6px; font-size:12.5px;"><b>${slot}</b>: ${packBySlot[slot].join('、')}</div>`).join('');
+    html += '</div>';
+  }
+  if(bara.length>0){
+    html += '<div class="section-label">【バラ】</div>';
+    html += '<div style="border:1px solid var(--ink); border-radius:7px; padding:12px 14px; margin-bottom:14px;">';
+    html += bara.map(b => `<div style="margin-bottom:6px; font-size:12.5px;">${b.name} ${b.doseLabel} <span style="color:var(--ink-soft); font-size:10.5px;">(${b.timingRaw})</span></div>`).join('');
+    html += '</div>';
+  }
+  if(prn.length>0){
+    html += '<div class="section-label">【頓服】</div>';
+    html += '<div style="border:1px solid var(--amber); border-radius:7px; padding:12px 14px; margin-bottom:14px;">';
+    html += prn.map(b => `<div style="margin-bottom:6px; font-size:12.5px;">${b.name} ${b.doseLabel} <span style="color:var(--ink-soft); font-size:10.5px;">(${b.timingRaw})</span></div>`).join('');
+    html += '</div>';
+  }
+  if(unknown.length>0){
+    html += '<div class="section-label">【要確認・マイデータベース未登録】</div>';
+    html += '<div class="disclaimer-box">';
+    html += unknown.map(b => `<div style="margin-bottom:6px;">${b.name} ${b.doseLabel} (${b.timingRaw}) — 一包化の可否が未登録です。薬剤師に確認のうえ、マイデータベースに登録してください。${b.hint ? '<br><span style="font-size:11px;">' + escHtml(b.hint) + '</span>' : ''}</div>`).join('');
+    html += '</div>';
+  }
+  if(checks.length>0){
+    html += '<div class="section-label">【照合の確認】</div>';
+    html += '<div class="disclaimer-box">';
+    html += checks.map(c => `<div style="margin-bottom:6px;">${escHtml(c.name)} → 登録「${escHtml(c.regName)}」と${c.partial ? '部分一致' : '規格違い'}${c.partial && c.strengthDiff ? '・規格違い' : ''}で照合しました。違う薬の場合は、薬品名を直してください。</div>`).join('');
+    html += '</div>';
+  }
+  if(html===''){
+    html = '<div class="empty-note">仕分けできる項目がありませんでした。薬品リストの内容をご確認ください。</div>';
+  }
+
+  document.getElementById('rx-groups').innerHTML = html;
+}
+</script>
+
+</body>
+</html>
